@@ -1,15 +1,19 @@
-![Ubuntu 24.04](https://img.shields.io/badge/Ubuntu-24.04-orange)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/bivlked/amneziawg-installer/blob/main/LICENSE)
-![Status](https://img.shields.io/badge/Status-Stable-success)
-[![Version](https://img.shields.io/badge/Installer_Version-5.1-blue)](https://github.com/bivlked/amneziawg-installer/releases)
-![AWG 2.0](https://img.shields.io/badge/AmneziaWG-2.0-blueviolet)
-[![ShellCheck](https://github.com/bivlked/amneziawg-installer/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/bivlked/amneziawg-installer/actions/workflows/shellcheck.yml)
-
-<h1 align="center">Автоматическая установка и управление AmneziaWG 2.0</h1>
+<p align="center">
+  <img src="logo.jpg" alt="AmneziaWG 2.0 Installer" width="600">
+</p>
 
 <p align="center">
-  Набор Bash-скриптов для быстрой, безопасной и удобной установки,<br>
-  настройки и управления VPN-сервером <strong>AmneziaWG 2.0</strong> на <strong>Ubuntu 24.04 LTS Minimal</strong>.
+  <strong>Набор Bash-скриптов для быстрой, безопасной и удобной установки,<br>
+  настройки и управления VPN-сервером AmneziaWG 2.0 на Ubuntu 24.04 LTS Minimal</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Ubuntu-24.04-orange" alt="Ubuntu 24.04">
+  <a href="https://github.com/bivlked/amneziawg-installer/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Status-Stable-success" alt="Status">
+  <a href="https://github.com/bivlked/amneziawg-installer/releases"><img src="https://img.shields.io/badge/Installer_Version-5.1-blue" alt="Version"></a>
+  <img src="https://img.shields.io/badge/AmneziaWG-2.0-blueviolet" alt="AWG 2.0">
+  <a href="https://github.com/bivlked/amneziawg-installer/actions/workflows/shellcheck.yml"><img src="https://github.com/bivlked/amneziawg-installer/actions/workflows/shellcheck.yml/badge.svg" alt="ShellCheck"></a>
 </p>
 
 <p align="center">
@@ -18,7 +22,6 @@
   <a href="#recomend-hosting">Хостинг</a> •
   <a href="#ustanovka">Установка</a> •
   <a href="#upravlenie">Управление</a> •
-  <a href="#migratsiya">Миграция с v4</a> •
   <a href="#dopolnitelno">Дополнительно</a> •
   <a href="#faq-main">FAQ</a> •
   <a href="#licenziya">Лицензия</a>
@@ -157,33 +160,6 @@ sudo bash /root/awg/manage_amneziawg.sh <команда> [аргументы]
 
 ---
 
-<a id="migratsiya"></a>
-## 🔄 Миграция с v4.0
-
-> **v5.0 — это breaking change.** Протокол AWG 2.0 **несовместим** с AWG 1.x. Все клиенты должны обновить конфигурацию.
-
-**Порядок миграции:**
-
-1. **Бэкап:** `sudo bash /root/awg/manage_amneziawg.sh backup`
-2. **Деинсталляция v4:** `sudo bash ./install_amneziawg.sh --uninstall`
-3. **Установка v5.0:** скачайте новый скрипт и установите (см. [Установка](#ustanovka))
-4. **Добавьте клиентов:** `sudo bash /root/awg/manage_amneziawg.sh add <имя>`
-5. **Обновите клиенты:** установите Amnezia VPN **>= 4.8.12.7** и импортируйте новые `.conf`
-
-**Что изменилось:**
-
-| | v4.0 (AWG 1.x) | v5.0 (AWG 2.0) |
-|---|---|---|
-| Протокол | AWG 1.x (H1-H4 фиксированные) | AWG 2.0 (H1-H4 диапазоны, S3-S4, CPS I1) |
-| Генерация конфигов | Python + awgcfg.py | Нативный Bash + `awg genkey/pubkey` |
-| Зависимости | Python 3 + venv | Только Bash + qrencode |
-| Оптимизация сервера | Нет | Cleanup + hardware-aware tuning |
-| Архитектура скриптов | 2 файла | 3 файла (+ awg_common.sh) |
-
-Предыдущая версия доступна в ветке [`legacy/v4`](https://github.com/bivlked/amneziawg-installer/tree/legacy/v4).
-
----
-
 <a id="dopolnitelno"></a>
 ## ℹ️ Дополнительная информация
 
@@ -266,5 +242,5 @@ sudo bash /root/awg/manage_amneziawg.sh <команда> [аргументы]
 ---
 
 <p align="center">
-  <a href="#автоматическая-установка-и-управление-amneziawg-20">↑ К началу</a>
+  <a href="#">↑ К началу</a>
 </p>
