@@ -411,7 +411,7 @@ list_clients() {
         echo
     fi
 
-    echo "$clients" | while IFS= read -r name; do
+    while IFS= read -r name; do
         name=$(echo "$name" | xargs)
         if [[ -z "$name" ]]; then continue; fi
         ((tot++))
@@ -481,7 +481,7 @@ list_clients() {
         else
             printf "%-20s | %-7s | %-7s | ${color_start}%s${color_end}\n" "$name" "$cf" "$png" "$st"
         fi
-    done
+    done <<< "$clients"
     echo ""
     log "Всего клиентов: $tot, Активных/Недавно: $act"
 }

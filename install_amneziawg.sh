@@ -16,13 +16,13 @@ STATE_FILE="$AWG_DIR/setup_state"
 LOG_FILE="$AWG_DIR/install_amneziawg.log"
 KEYS_DIR="$AWG_DIR/keys"
 SERVER_CONF_FILE="/etc/amnezia/amneziawg/awg0.conf"
-COMMON_SCRIPT_URL="https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/awg_common.sh"
+COMMON_SCRIPT_URL="https://raw.githubusercontent.com/bivlked/amneziawg-installer/feature/awg2.0/awg_common.sh"
 COMMON_SCRIPT_PATH="$AWG_DIR/awg_common.sh"
-MANAGE_SCRIPT_URL="https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/manage_amneziawg.sh"
+MANAGE_SCRIPT_URL="https://raw.githubusercontent.com/bivlked/amneziawg-installer/feature/awg2.0/manage_amneziawg.sh"
 MANAGE_SCRIPT_PATH="$AWG_DIR/manage_amneziawg.sh"
 
 # Флаги CLI
-UNINSTALL=0; HELP=0; DIAGNOSTIC=0; VERBOSE=0; NO_COLOR=0
+UNINSTALL=0; HELP=0; DIAGNOSTIC=0; VERBOSE=0; NO_COLOR=0; AUTO_YES=0
 CLI_PORT=""; CLI_SUBNET=""; CLI_DISABLE_IPV6="default"
 CLI_ROUTING_MODE="default"; CLI_CUSTOM_ROUTES=""; CLI_ENDPOINT=""
 
@@ -42,6 +42,7 @@ while [[ $# -gt 0 ]]; do
         --route-amnezia) CLI_ROUTING_MODE=2 ;;
         --route-custom=*) CLI_ROUTING_MODE=3; CLI_CUSTOM_ROUTES="${1#*=}" ;;
         --endpoint=*)    CLI_ENDPOINT="${1#*=}" ;;
+        --yes|-y)        AUTO_YES=1 ;;
         *) echo "Неизвестный аргумент: $1"; HELP=1 ;;
     esac
     shift
@@ -114,10 +115,12 @@ show_help() {
   --route-amnezia       Использовать режим 'Amnezia' неинтерактивно
   --route-custom=СЕТИ   Использовать режим 'Пользовательский' неинтерактивно
   --endpoint=IP         Указать внешний IP сервера (для серверов за NAT)
+  -y, --yes             Автоматическое подтверждение (перезагрузки, UFW и т.д.)
 
 Примеры:
   sudo bash install_amneziawg.sh                             # Интерактивная установка
   sudo bash install_amneziawg.sh --port=51820 --route-all    # Неинтерактивная
+  sudo bash install_amneziawg.sh --route-amnezia --yes       # Полностью автоматическая
   sudo bash install_amneziawg.sh --uninstall                 # Удаление
   sudo bash install_amneziawg.sh --diagnostic                # Диагностика
 
@@ -147,7 +150,12 @@ request_reboot() {
     log_warn "!!! sudo bash $0 [с теми же параметрами, если были]       !!!"
     log_warn "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     echo "" >> "$LOG_FILE"
-    read -p "Перезагрузить сейчас? [y/N]: " confirm < /dev/tty
+    local confirm="y"
+    if [[ "$AUTO_YES" -eq 0 ]]; then
+        read -p "Перезагрузить сейчас? [y/N]: " confirm < /dev/tty
+    else
+        log "Автоматическое подтверждение перезагрузки (--yes)."
+    fi
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         log "Инициирована перезагрузка..."
         sleep 5
@@ -170,8 +178,12 @@ check_os_version() {
     os_ver=$(lsb_release -sr)
     if [[ "$os_id" != "Ubuntu" || "$os_ver" != "24.04" ]]; then
         log_warn "Обнаружена $os_id $os_ver. Скрипт разработан для Ubuntu 24.04 LTS."
-        read -p "Продолжить? [y/N]: " confirm < /dev/tty
-        if ! [[ "$confirm" =~ ^[Yy]$ ]]; then die "Отмена."; fi
+        if [[ "$AUTO_YES" -eq 0 ]]; then
+            read -p "Продолжить? [y/N]: " confirm < /dev/tty
+            if ! [[ "$confirm" =~ ^[Yy]$ ]]; then die "Отмена."; fi
+        else
+            log "Продолжаем на $os_id $os_ver (--yes)."
+        fi
     else
         log "ОС: Ubuntu $os_ver (OK)"
     fi
@@ -188,8 +200,12 @@ check_free_space() {
     fi
     if [ "$avail" -lt "$req" ]; then
         log_warn "Доступно $avail МБ. Рекомендуется >= $req МБ."
-        read -p "Продолжить? [y/N]: " confirm < /dev/tty
-        if ! [[ "$confirm" =~ ^[Yy]$ ]]; then die "Отмена."; fi
+        if [[ "$AUTO_YES" -eq 0 ]]; then
+            read -p "Продолжить? [y/N]: " confirm < /dev/tty
+            if ! [[ "$confirm" =~ ^[Yy]$ ]]; then die "Отмена."; fi
+        else
+            log "Продолжаем с $avail МБ (--yes)."
+        fi
     else
         log "Свободно: $avail МБ (OK)"
     fi
@@ -240,6 +256,9 @@ configure_ipv6() {
     if [[ "$CLI_DISABLE_IPV6" != "default" ]]; then
         DISABLE_IPV6=$CLI_DISABLE_IPV6
         log "IPv6 из CLI: $DISABLE_IPV6"
+    elif [[ "$AUTO_YES" -eq 1 ]]; then
+        DISABLE_IPV6=1
+        log "IPv6 отключен (--yes, по умолчанию)."
     else
         read -p "Отключить IPv6 (рекомендуется)? [Y/n]: " dis_ipv6 < /dev/tty
         if [[ "$dis_ipv6" =~ ^[Nn]$ ]]; then
@@ -260,6 +279,9 @@ configure_routing_mode() {
             if [ -z "$ALLOWED_IPS" ]; then die "Не указаны сети для --route-custom."; fi
         fi
         log "Режим маршрутизации из CLI: $ALLOWED_IPS_MODE"
+    elif [[ "$AUTO_YES" -eq 1 ]]; then
+        ALLOWED_IPS_MODE=2
+        log "Режим маршрутизации: Amnezia+DNS (--yes, по умолчанию)."
     else
         echo ""
         log "Выберите режим маршрутизации (AllowedIPs клиента):"
@@ -630,8 +652,13 @@ setup_improved_firewall() {
         log "Правила UFW добавлены."
         log_warn "--- ВКЛЮЧЕНИЕ UFW ---"
         log_warn "Проверьте SSH доступ!"
-        sleep 5
-        read -p "Включить UFW? [y/N]: " confirm_ufw < /dev/tty
+        local confirm_ufw="y"
+        if [[ "$AUTO_YES" -eq 0 ]]; then
+            sleep 5
+            read -p "Включить UFW? [y/N]: " confirm_ufw < /dev/tty
+        else
+            log "Автоматическое включение UFW (--yes)."
+        fi
         if ! [[ "$confirm_ufw" =~ ^[Yy]$ ]]; then
             log_warn "UFW не включен."
             return 1
@@ -686,8 +713,9 @@ banaction = ufw
 
 [sshd]
 enabled = true
-maxretry = 3
-bantime  = 12h
+maxretry = 5
+findtime = 10m
+bantime  = 1h
 EOF
     if systemctl restart fail2ban; then
         log "Fail2Ban настроен и перезапущен."
@@ -835,9 +863,14 @@ step_uninstall() {
     echo "ВНИМАНИЕ! Полное удаление AmneziaWG и конфигураций."
     echo "Процесс необратим!"
     echo ""
-    read -p "Уверены? (введите 'yes'): " confirm < /dev/tty
-    if [[ "$confirm" != "yes" ]]; then log "Деинсталляция отменена."; exit 1; fi
-    read -p "Создать бэкап перед удалением? [Y/n]: " backup < /dev/tty
+    local confirm="yes" backup="Y"
+    if [[ "$AUTO_YES" -eq 0 ]]; then
+        read -p "Уверены? (введите 'yes'): " confirm < /dev/tty
+        if [[ "$confirm" != "yes" ]]; then log "Деинсталляция отменена."; exit 1; fi
+        read -p "Создать бэкап перед удалением? [Y/n]: " backup < /dev/tty
+    else
+        log "Автоматическое подтверждение деинсталляции (--yes)."
+    fi
     if [[ -z "$backup" || "$backup" =~ ^[Yy]$ ]]; then
         local bf
         bf="$HOME/awg_uninstall_backup_$(date +%F_%T).tar.gz"
@@ -849,6 +882,11 @@ step_uninstall() {
     log "Остановка сервиса..."
     systemctl stop awg-quick@awg0 2>/dev/null
     systemctl disable awg-quick@awg0 2>/dev/null
+    log "Снятие блокировок Fail2Ban..."
+    if command -v fail2ban-client &>/dev/null; then
+        fail2ban-client unban --all 2>/dev/null || true
+        systemctl stop fail2ban 2>/dev/null
+    fi
     log "Удаление правил UFW..."
     if command -v ufw &>/dev/null; then
         local port_to_del
@@ -858,12 +896,17 @@ step_uninstall() {
         fi
         port_to_del=${port_to_del:-39743}
         ufw delete allow "${port_to_del}/udp" 2>/dev/null
-        ufw delete limit 22/tcp 2>/dev/null
+        log "Отключение UFW..."
+        ufw --force disable 2>/dev/null
     fi
     log "Удаление пакетов..."
     DEBIAN_FRONTEND=noninteractive apt-get purge -y amneziawg-dkms amneziawg-tools fail2ban qrencode 2>/dev/null || log_warn "Ошибка purge."
     DEBIAN_FRONTEND=noninteractive apt-get autoremove -y 2>/dev/null || log_warn "Ошибка autoremove."
-    log "Удаление файлов..."
+    log "Удаление PPA и файлов..."
+    rm -f /etc/apt/sources.list.d/amnezia-ppa.sources \
+        /etc/apt/sources.list.d/amnezia-ubuntu-ppa-*.list \
+        /etc/apt/sources.list.d/amnezia-ubuntu-ppa-*.sources \
+        /etc/apt/keyrings/amnezia-ppa.gpg 2>/dev/null
     rm -rf /etc/amnezia "$AWG_DIR" \
         /etc/modules-load.d/amneziawg.conf \
         /etc/sysctl.d/99-amneziawg-security.conf \
@@ -943,13 +986,17 @@ initialize_setup() {
     # Запрос у пользователя только на первом запуске
     if [[ "$config_exists" -eq 0 ]]; then
         log "Запрос настроек у пользователя (первый запуск)."
-        read -p "Введите UDP порт AmneziaWG (1024-65535) [${AWG_PORT}]: " input_port < /dev/tty
-        if [[ -n "$input_port" ]]; then AWG_PORT=$input_port; fi
+        if [[ "$AUTO_YES" -eq 0 ]]; then
+            read -p "Введите UDP порт AmneziaWG (1024-65535) [${AWG_PORT}]: " input_port < /dev/tty
+            if [[ -n "$input_port" ]]; then AWG_PORT=$input_port; fi
+        fi
         if ! [[ "$AWG_PORT" =~ ^[0-9]+$ ]] || [ "$AWG_PORT" -lt 1024 ] || [ "$AWG_PORT" -gt 65535 ]; then
             die "Некорректный порт."
         fi
-        read -p "Введите подсеть туннеля [${AWG_TUNNEL_SUBNET}]: " input_subnet < /dev/tty
-        if [[ -n "$input_subnet" ]]; then AWG_TUNNEL_SUBNET=$input_subnet; fi
+        if [[ "$AUTO_YES" -eq 0 ]]; then
+            read -p "Введите подсеть туннеля [${AWG_TUNNEL_SUBNET}]: " input_subnet < /dev/tty
+            if [[ -n "$input_subnet" ]]; then AWG_TUNNEL_SUBNET=$input_subnet; fi
+        fi
         if ! [[ "$AWG_TUNNEL_SUBNET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
             die "Некорректная подсеть: '$AWG_TUNNEL_SUBNET'."
         fi
@@ -1050,8 +1097,8 @@ step1_update_and_optimize() {
     apt update -y || die "Ошибка apt update."
 
     log "Разблокировка dpkg..."
-    if fuser /var/lib/dpkg/lock* &>/dev/null; then
-        log_warn "dpkg заблокирован..."
+    if ! apt-get check &>/dev/null; then
+        log_warn "dpkg заблокирован или повреждён, исправление..."
         DEBIAN_FRONTEND=noninteractive dpkg --configure -a || log_warn "dpkg --configure -a."
     fi
 
@@ -1059,7 +1106,7 @@ step1_update_and_optimize() {
     DEBIAN_FRONTEND=noninteractive apt full-upgrade -y || die "Ошибка apt full-upgrade."
     log "Система обновлена."
 
-    install_packages curl wget gpg sudo net-tools ethtool
+    install_packages curl wget gpg sudo ethtool
 
     # Оптимизация системы
     optimize_system
@@ -1106,17 +1153,36 @@ step2_install_amnezia() {
         apt update -y
     fi
 
-    # PPA Amnezia
+    # PPA Amnezia (без software-properties-common)
     log "Добавление PPA Amnezia..."
     local codename
     codename=$(lsb_release -sc 2>/dev/null || echo "noble")
-    local ppa_list="/etc/apt/sources.list.d/amnezia-ubuntu-ppa-${codename}.list"
-    local ppa_sources="/etc/apt/sources.list.d/amnezia-ubuntu-ppa-${codename}.sources"
-    if [[ ! -f "$ppa_list" ]] && [[ ! -f "$ppa_sources" ]]; then
-        DEBIAN_FRONTEND=noninteractive add-apt-repository -y ppa:amnezia/ppa || die "Ошибка PPA."
-        log "PPA добавлен."
-    else
+    local keyring_dir="/etc/apt/keyrings"
+    local keyring_file="${keyring_dir}/amnezia-ppa.gpg"
+    local ppa_sources="/etc/apt/sources.list.d/amnezia-ppa.sources"
+    # Проверка на legacy-файлы (от add-apt-repository предыдущих версий)
+    local legacy_list="/etc/apt/sources.list.d/amnezia-ubuntu-ppa-${codename}.list"
+    local legacy_sources="/etc/apt/sources.list.d/amnezia-ubuntu-ppa-${codename}.sources"
+    if [[ -f "$legacy_list" ]] || [[ -f "$legacy_sources" ]]; then
+        log "PPA уже добавлен (legacy-формат)."
+    elif [[ -f "$ppa_sources" ]]; then
         log "PPA уже добавлен."
+    else
+        mkdir -p "$keyring_dir"
+        log "Импорт GPG ключа Amnezia PPA..."
+        curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x57290828" \
+            | gpg --dearmor -o "$keyring_file" \
+            || die "Ошибка импорта GPG ключа Amnezia PPA."
+        chmod 644 "$keyring_file"
+        cat > "$ppa_sources" <<PPASRC || die "Ошибка создания sources PPA."
+Types: deb
+URIs: https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu
+Suites: ${codename}
+Components: main
+Signed-By: ${keyring_file}
+PPASRC
+        chmod 644 "$ppa_sources"
+        log "PPA добавлен."
     fi
     apt update -y || die "Ошибка apt update."
 
