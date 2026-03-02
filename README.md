@@ -54,6 +54,14 @@
 * **Интернет:** Стабильное подключение.
 * **Ресурсы:** ~1 ГБ ОЗУ (рекомендуется 2+ ГБ), ~3 ГБ диска.
 * **SSH:** Доступ по SSH.
+
+**Совместимость ОС:**
+
+| ОС | Статус | Примечание |
+|----|--------|------------|
+| Ubuntu 24.04 LTS | ✅ Полная поддержка | Рекомендуется |
+| Ubuntu 25.10 | ⚠️ Экспериментально | Может потребоваться сборка модуля из исходников |
+
 * **Клиент:** [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client/releases) **>= 4.8.12.7** с поддержкой AWG 2.0.
     > ⚠️ **Не путайте** с `amneziawg-windows-client` — это другой проект (standalone tunnel manager), **не поддерживающий** AWG 2.0.
     > ⚠️ **ВАЖНО:** Если используется **нестандартный порт SSH** (отличный от 22), **ОБЯЗАТЕЛЬНО** добавьте правило `sudo ufw allow ВАШ_ПОРТ/tcp` **ДО** запуска скрипта установки!
@@ -158,6 +166,26 @@ sudo bash /root/awg/manage_amneziawg.sh <команда> [аргументы]
 > **❗️ ВАЖНО:** После `add`, `remove` **перезапустите сервис**: `sudo systemctl restart awg-quick@awg0` (или используйте команду `restart` скрипта управления).
 
 **Получение файлов клиентов:** Файлы `.conf` и `.png` находятся в `/root/awg/`. Используйте `scp`, `sftp` или любой другой безопасный способ для их копирования.
+
+### 📌 Краткая справка
+
+```bash
+# Установка
+wget https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg.sh
+sudo bash ./install_amneziawg.sh          # Запуск (+ 2 перезагрузки)
+
+# Управление клиентами
+sudo bash /root/awg/manage_amneziawg.sh add my_phone       # Добавить
+sudo bash /root/awg/manage_amneziawg.sh remove my_phone    # Удалить
+sudo bash /root/awg/manage_amneziawg.sh list                # Список
+sudo bash /root/awg/manage_amneziawg.sh regen               # Перегенерация
+
+# Обслуживание
+sudo bash /root/awg/manage_amneziawg.sh check               # Диагностика
+sudo bash /root/awg/manage_amneziawg.sh backup               # Бэкап
+sudo bash /root/awg/manage_amneziawg.sh restart              # Перезапуск
+sudo systemctl restart awg-quick@awg0                        # После add/remove
+```
 
 ---
 

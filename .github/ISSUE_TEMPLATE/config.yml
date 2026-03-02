@@ -1,1 +1,8 @@
 blank_issues_enabled: true
+contact_links:
+  - name: FAQ и решение проблем
+    url: https://github.com/bivlked/amneziawg-installer#faq-main
+    about: Прочитайте FAQ перед созданием issue
+  - name: Расширенная документация
+    url: https://github.com/bivlked/amneziawg-installer/blob/main/ADVANCED.md
+    about: Подробная техническая документация и troubleshooting

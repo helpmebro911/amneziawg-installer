@@ -21,7 +21,7 @@ Thank you for your interest in contributing! This guide covers the process and c
 
 ### File Operations
 
-- Atomic writes: use a temporary file (`mktemp`) and `mv` to the final destination
+- Atomic writes: use `awg_mktemp()` (auto-cleanup via trap) and `mv` to the final destination
 - Create backups before modifying existing configs
 - Set strict permissions: `chmod 600` for keys/configs, `chmod 700` for directories
 
