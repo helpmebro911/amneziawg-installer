@@ -10,6 +10,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.3] — 2026-03-02
+
+### Added
+
+- **English scripts:** Full English versions of all three scripts (`install_amneziawg_en.sh`, `manage_amneziawg_en.sh`, `awg_common_en.sh`) with translated messages, help text, and comments.
+- **CI:** ShellCheck and `bash -n` checks for English scripts.
+- **PR template:** Checklist item for EN/RU version synchronization.
+- **CONTRIBUTING.md:** Requirement to synchronize EN/RU when modifying scripts.
+
+---
+
 ## [5.2] — 2026-03-03
 
 ### Fixed

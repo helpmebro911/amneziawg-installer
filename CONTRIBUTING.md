@@ -57,6 +57,16 @@ Before submitting a PR, ensure:
    - Reboot-resume between critical installer steps
    - Client connectivity (handshake, ping, DNS resolution)
 
+## Multilingual Scripts
+
+When modifying Russian scripts (`*.sh`), update the corresponding English versions (`*_en.sh`):
+
+- `awg_common.sh` → `awg_common_en.sh`
+- `manage_amneziawg.sh` → `manage_amneziawg_en.sh`
+- `install_amneziawg.sh` → `install_amneziawg_en.sh`
+
+Run `diff install_amneziawg.sh install_amneziawg_en.sh` to verify only text differences remain.
+
 ## Commit Messages
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):

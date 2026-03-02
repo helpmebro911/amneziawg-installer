@@ -357,6 +357,9 @@ sudo bash /root/awg/manage_amneziawg.sh restore
 | `install_amneziawg.sh` | Installer: 8-step state machine with resume support |
 | `manage_amneziawg.sh` | Management: add/remove/list/regen/backup/restore |
 | `awg_common.sh` | Shared library: keys, configs, QR, peer management |
+| `install_amneziawg_en.sh` | Installer (English version) |
+| `manage_amneziawg_en.sh` | Management (English version) |
+| `awg_common_en.sh` | Shared library (English version) |
 
 `awg_common.sh` is loaded via `source` from both scripts. The installer downloads it at step 5.
 
@@ -411,9 +414,13 @@ Client keys are stored in `/root/awg/keys/` (permissions 600). Server keys are i
 To update the management and shared library scripts **without reinstalling the server**:
 
 ```bash
-# Download updated scripts
+# Russian version:
 wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/manage_amneziawg.sh
 wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/awg_common.sh
+
+# English version:
+wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/manage_amneziawg_en.sh
+wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/awg_common_en.sh
 
 # Set permissions
 chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh

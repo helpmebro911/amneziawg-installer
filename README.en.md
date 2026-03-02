@@ -112,6 +112,13 @@ This installation method ensures correct handling of interactive prompts and col
     ```
     *(You can also pass command-line parameters, see `sudo bash ./install_amneziawg.sh --help` or [ADVANCED.en.md#install-cli-adv](ADVANCED.en.md#install-cli-adv))*
 
+    > **English version:** If you prefer English output during installation:
+    > ```bash
+    > wget https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg_en.sh
+    > sudo bash ./install_amneziawg_en.sh
+    > ```
+    > The English version is functionally identical; only user-facing messages and logs are in English.
+
 5.  **Initial setup:** The script will interactively ask for:
     * **UDP port:** Port for client connections (1024-65535). Default: `39743`.
     * **Tunnel subnet:** Internal VPN network. Default: `10.9.9.1/24`.
@@ -174,9 +181,13 @@ sudo bash /root/awg/manage_amneziawg.sh <command> [arguments]
 ### 📌 Quick Reference
 
 ```bash
-# Installation
+# Installation (Russian)
 wget https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg.sh
 sudo bash ./install_amneziawg.sh          # Run (+ 2 reboots)
+
+# Installation (English)
+wget https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg_en.sh
+sudo bash ./install_amneziawg_en.sh       # Run (+ 2 reboots)
 
 # Client management
 sudo bash /root/awg/manage_amneziawg.sh add my_phone       # Add
@@ -234,8 +245,14 @@ For the changelog, see **[CHANGELOG.en.md](CHANGELOG.en.md)**.
   <summary><strong>Q: How do I update the scripts to a newer version?</strong></summary>
   <b>A:</b> Download the updated scripts and replace them on the server:
   <pre>
+  # Russian version:
   wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/manage_amneziawg.sh
   wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/awg_common.sh
+  chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
+
+  # English version:
+  wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/manage_amneziawg_en.sh
+  wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/awg_common_en.sh
   chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
   </pre>
   Server reinstallation is not required.
