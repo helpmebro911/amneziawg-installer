@@ -8,14 +8,14 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 installation and configuration script for Ubuntu 24.04 LTS Minimal
 # Author: @bivlked
-# Version: 5.4
+# Version: 5.5
 # Date: 2026-03-02
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Safe mode and Constants ---
 set -o pipefail
-SCRIPT_VERSION="5.4"
+SCRIPT_VERSION="5.5"
 
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
@@ -66,9 +66,10 @@ log_msg() {
     local safe_msg
     safe_msg=$(echo "$msg" | sed 's/%/%%/g')
     local entry="[$ts] $type: $safe_msg"
-    local color_start="" color_end="\033[0m"
+    local color_start="" color_end=""
 
     if [[ "$NO_COLOR" -eq 0 ]]; then
+        color_end="\033[0m"
         case "$type" in
             INFO)  color_start="\033[0;32m" ;;
             WARN)  color_start="\033[0;33m" ;;
@@ -869,7 +870,7 @@ step_uninstall() {
     echo "WARNING! Complete removal of AmneziaWG and configurations."
     echo "This process is irreversible!"
     echo ""
-    local confirm="yes" backup="Y"
+    local confirm="" backup="Y"
     if [[ "$AUTO_YES" -eq 0 ]]; then
         read -p "Are you sure? (type 'yes'): " confirm < /dev/tty
         if [[ "$confirm" != "yes" ]]; then log "Uninstall cancelled."; exit 1; fi
@@ -888,6 +889,7 @@ step_uninstall() {
     log "Stopping service..."
     systemctl stop awg-quick@awg0 2>/dev/null
     systemctl disable awg-quick@awg0 2>/dev/null
+    modprobe -r amneziawg 2>/dev/null || true
     log "Removing Fail2Ban bans..."
     if command -v fail2ban-client &>/dev/null; then
         fail2ban-client unban --all 2>/dev/null || true
@@ -913,7 +915,7 @@ step_uninstall() {
         /etc/apt/sources.list.d/amnezia-ubuntu-ppa-*.list \
         /etc/apt/sources.list.d/amnezia-ubuntu-ppa-*.sources \
         /etc/apt/keyrings/amnezia-ppa.gpg 2>/dev/null
-    rm -rf /etc/amnezia "$AWG_DIR" \
+    rm -rf /etc/amnezia \
         /etc/modules-load.d/amneziawg.conf \
         /etc/sysctl.d/99-amneziawg-security.conf \
         /etc/logrotate.d/amneziawg* \
@@ -925,9 +927,14 @@ step_uninstall() {
         sed -i '/disable_ipv6/d' /etc/sysctl.conf || log_warn "sed sysctl.conf error"
     fi
     sysctl -p --system 2>/dev/null
+    rm -rf /etc/fail2ban/ 2>/dev/null || true
+    rm -f /etc/apt/sources.list.d/*.bak-* 2>/dev/null || true
     log "Removing cron and scripts..."
     rm -f /etc/cron.d/*amneziawg* /usr/local/bin/*amneziawg*.sh 2>/dev/null
     log "=== UNINSTALL COMPLETED ==="
+    # Copy log and remove working directory
+    cp "$LOG_FILE" "$HOME/awg_uninstall.log" 2>/dev/null || true
+    rm -rf "$AWG_DIR" 2>/dev/null || true
     exit 0
 }
 
@@ -1424,7 +1431,6 @@ step99_finish() {
     log "IMPORTANT: Use Amnezia VPN client >= 4.8.12.7 to connect"
     log "           with AWG 2.0 protocol support"
     log " "
-    log "Cleaning apt..."
     cleanup_apt
     log " "
 
@@ -1437,7 +1443,7 @@ step99_finish() {
 
     # Remove state file
     log "Removing installation state file..."
-    rm -f "$STATE_FILE" || log_warn "Failed to remove $STATE_FILE"
+    rm -f "$STATE_FILE" "${STATE_FILE}.lock" || log_warn "Failed to remove $STATE_FILE"
     log "Installation fully completed. Log: $LOG_FILE"
     log "=============================================================================="
 }
