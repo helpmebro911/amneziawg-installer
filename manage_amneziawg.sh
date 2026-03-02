@@ -8,8 +8,8 @@ fi
 # ==============================================================================
 # Скрипт для управления пользователями (пирами) AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.1
-# Дата: 2026-03-01
+# Версия: 5.2
+# Дата: 2026-03-03
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
@@ -245,9 +245,12 @@ restore_backup() {
 
     if [[ -d "$td/server" ]]; then
         log "Восстановление конфига сервера..."
-        cp -a "$td/server/"* /etc/amnezia/amneziawg/ || log_error "Ошибка копирования server"
-        chmod 600 /etc/amnezia/amneziawg/*.conf
-        chmod 700 /etc/amnezia/amneziawg
+        local server_conf_dir
+        server_conf_dir=$(dirname "$SERVER_CONF_FILE")
+        mkdir -p "$server_conf_dir"
+        cp -a "$td/server/"* "$server_conf_dir/" || log_error "Ошибка копирования server"
+        chmod 600 "$server_conf_dir"/*.conf 2>/dev/null
+        chmod 700 "$server_conf_dir"
     fi
 
     if [[ -d "$td/clients" ]]; then
@@ -273,7 +276,9 @@ restore_backup() {
     log "Запуск сервиса..."
     if ! systemctl start awg-quick@awg0; then
         log_error "Ошибка запуска сервиса!"
-        systemctl status awg-quick@awg0 --no-pager | log_msg "ERROR"
+        local status_out
+        status_out=$(systemctl status awg-quick@awg0 --no-pager 2>&1) || true
+        while IFS= read -r line; do log_error "  $line"; done <<< "$status_out"
         return 1
     fi
     log "Восстановление завершено."
@@ -288,6 +293,14 @@ modify_client() {
 
     if [[ -z "$name" || -z "$param" || -z "$value" ]]; then
         log_error "Использование: modify <имя> <параметр> <значение>"
+        return 1
+    fi
+
+    # Допустимые для модификации параметры
+    local allowed_params="DNS|Endpoint|AllowedIPs|Address|PersistentKeepalive|MTU"
+    if ! [[ "$param" =~ ^($allowed_params)$ ]]; then
+        log_error "Параметр '$param' нельзя изменить через modify."
+        log_error "Допустимые параметры: ${allowed_params//|/, }"
         return 1
     fi
 
@@ -395,10 +408,11 @@ check_server() {
 
     if [[ "$ok" -eq 1 ]]; then
         log "Проверка завершена: Состояние OK."
+        return 0
     else
         log_error "Проверка завершена: ОБНАРУЖЕНЫ ПРОБЛЕМЫ!"
+        return 1
     fi
-    return $ok
 }
 
 # ==============================================================================
@@ -510,7 +524,7 @@ list_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "Скрипт управления AmneziaWG 2.0 (v5.1)"
+    echo "Скрипт управления AmneziaWG 2.0 (v5.2)"
     echo "=============================================="
     echo "Использование: $0 [ОПЦИИ] <КОМАНДА> [АРГУМЕНТЫ]"
     echo ""
@@ -645,7 +659,8 @@ case $COMMAND in
         if ! confirm_action "перезапустить" "сервис"; then exit 1; fi
         if ! systemctl restart awg-quick@awg0; then
             log_error "Ошибка перезапуска."
-            systemctl status awg-quick@awg0 --no-pager | log_msg "ERROR"
+            status_out=$(systemctl status awg-quick@awg0 --no-pager 2>&1) || true
+            while IFS= read -r line; do log_error "  $line"; done <<< "$status_out"
             exit 1
         else
             log "Сервис перезапущен."

@@ -3,8 +3,8 @@
 # ==============================================================================
 # Общая библиотека функций для AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.1
-# Дата: 2026-03-01
+# Версия: 5.2
+# Дата: 2026-03-03
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 #
@@ -19,7 +19,7 @@ CONFIG_FILE="${CONFIG_FILE:-$AWG_DIR/awgsetup_cfg.init}"
 SERVER_CONF_FILE="${SERVER_CONF_FILE:-/etc/amnezia/amneziawg/awg0.conf}"
 KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
-AWG_COMMON_VERSION="5.1"
+AWG_COMMON_VERSION="5.2"
 
 # --- Trap для автоочистки временных файлов ---
 _AWG_TEMP_FILES=()
@@ -225,7 +225,7 @@ render_server_config() {
 
     # Формируем конфиг через временный файл (атомарная запись)
     local tmpfile
-    tmpfile=$(mktemp) || { log_error "Ошибка mktemp"; return 1; }
+    tmpfile=$(awg_mktemp) || { log_error "Ошибка mktemp"; return 1; }
 
     cat > "$tmpfile" << EOF
 [Interface]
@@ -278,7 +278,7 @@ render_client_config() {
     local allowed_ips="${ALLOWED_IPS:-0.0.0.0/0}"
 
     local tmpfile
-    tmpfile=$(mktemp) || { log_error "Ошибка mktemp"; return 1; }
+    tmpfile=$(awg_mktemp) || { log_error "Ошибка mktemp"; return 1; }
 
     cat > "$tmpfile" << EOF
 [Interface]
@@ -377,7 +377,7 @@ add_peer_to_server() {
 
     # Добавляем пир через временный файл (атомарно)
     local tmpfile
-    tmpfile=$(mktemp) || { log_error "Ошибка mktemp"; return 1; }
+    tmpfile=$(awg_mktemp) || { log_error "Ошибка mktemp"; return 1; }
 
     cp "$SERVER_CONF_FILE" "$tmpfile" || {
         rm -f "$tmpfile"
@@ -419,7 +419,7 @@ remove_peer_from_server() {
     fi
 
     local tmpfile
-    tmpfile=$(mktemp) || { log_error "Ошибка mktemp"; return 1; }
+    tmpfile=$(awg_mktemp) || { log_error "Ошибка mktemp"; return 1; }
 
     # Удаляем блок [Peer] содержащий #_Name = name
     # Логика: буферизуем каждый [Peer] блок, проверяем имя, выводим только если не совпадает

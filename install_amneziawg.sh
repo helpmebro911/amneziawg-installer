@@ -8,23 +8,14 @@ fi
 # ==============================================================================
 # Скрипт для установки и настройки AmneziaWG 2.0 на Ubuntu 24.04 LTS Minimal
 # Автор: @bivlked
-# Версия: 5.1
-# Дата: 2026-03-01
+# Версия: 5.2
+# Дата: 2026-03-03
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Безопасный режим и Константы ---
 set -o pipefail
 
-# Trap для автоочистки временных файлов (до source awg_common.sh)
-_INSTALL_TEMP_FILES=()
-_install_cleanup() {
-    local f
-    for f in "${_INSTALL_TEMP_FILES[@]}"; do
-        [[ -f "$f" ]] && rm -f "$f"
-    done
-}
-trap _install_cleanup EXIT
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
 STATE_FILE="$AWG_DIR/setup_state"
