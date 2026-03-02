@@ -468,6 +468,11 @@ chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
 </details>
 
 <details>
+  <summary><strong>В: Ошибка «Неверный ключ: s3» при импорте конфига в Windows-клиент?</strong></summary>
+  <b>О:</b> Вы используете <code>amneziawg-windows-client</code> — standalone tunnel manager, который поддерживает только AWG 1.x и <b>не понимает</b> параметры AWG 2.0 (S3, S4, I1, диапазоны H1-H4). Установите полноценный клиент <a href="https://github.com/amnezia-vpn/amnezia-client/releases"><b>Amnezia VPN</b></a> версии <b>>= 4.8.12.7</b>. Конфиги, сгенерированные скриптом, полностью корректны — просто нужен правильный клиент.
+</details>
+
+<details>
   <summary><strong>В: Ошибка DKMS при обновлении ядра — что делать?</strong></summary>
   **О:** 1. Проверьте статус: <code>dkms status</code>. 2. Попробуйте пересобрать: <code>sudo dkms install amneziawg/$(dkms status | grep amneziawg | head -1 | awk -F'[,/ ]+' '{print $2}')</code>. 3. Убедитесь, что установлены заголовки ядра: <code>sudo apt install linux-headers-$(uname -r)</code>. 4. При неустранимой ошибке запустите диагностику: <code>sudo bash ./install_amneziawg.sh --diagnostic</code>.
 </details>

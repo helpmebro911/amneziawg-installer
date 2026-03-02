@@ -54,7 +54,8 @@
 * **Интернет:** Стабильное подключение.
 * **Ресурсы:** ~1 ГБ ОЗУ (рекомендуется 2+ ГБ), ~3 ГБ диска.
 * **SSH:** Доступ по SSH.
-* **Клиент:** Amnezia VPN **>= 4.8.12.7** с поддержкой AWG 2.0.
+* **Клиент:** [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client/releases) **>= 4.8.12.7** с поддержкой AWG 2.0.
+    > ⚠️ **Не путайте** с `amneziawg-windows-client` — это другой проект (standalone tunnel manager), **не поддерживающий** AWG 2.0.
     > ⚠️ **ВАЖНО:** Если используется **нестандартный порт SSH** (отличный от 22), **ОБЯЗАТЕЛЬНО** добавьте правило `sudo ufw allow ВАШ_ПОРТ/tcp` **ДО** запуска скрипта установки!
 
 ---
@@ -190,6 +191,11 @@ sudo bash /root/awg/manage_amneziawg.sh <команда> [аргументы]
 <details>
   <summary><strong>В: Можно ли использовать с AWG 1.x клиентами?</strong></summary>
   **О:** Нет. AWG 2.0 несовместим с AWG 1.x. Все клиенты должны поддерживать протокол 2.0. Для AWG 1.x используйте ветку <a href="https://github.com/bivlked/amneziawg-installer/tree/legacy/v4">legacy/v4</a>.
+</details>
+
+<details>
+  <summary><strong>В: Ошибка импорта конфига «Неверный ключ: s3» — что делать?</strong></summary>
+  <b>О:</b> Вы используете <code>amneziawg-windows-client</code> (standalone tunnel manager), который <b>не поддерживает</b> AWG 2.0. Установите полноценный клиент <a href="https://github.com/amnezia-vpn/amnezia-client/releases"><b>Amnezia VPN</b></a> версии <b>>= 4.8.12.7</b> — он поддерживает все параметры AWG 2.0 (S3, S4, I1, диапазоны H1-H4).
 </details>
 
 <details>
