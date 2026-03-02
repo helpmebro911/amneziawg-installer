@@ -118,6 +118,7 @@ This installation method ensures correct handling of interactive prompts and col
     > sudo bash ./install_amneziawg_en.sh
     > ```
     > The English version is functionally identical; only user-facing messages and logs are in English.
+    > After reboots, resume with the same file: `sudo bash ./install_amneziawg_en.sh`
 
 5.  **Initial setup:** The script will interactively ask for:
     * **UDP port:** Port for client connections (1024-65535). Default: `39743`.

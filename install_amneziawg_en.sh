@@ -104,7 +104,7 @@ die()       { log_error "CRITICAL ERROR: $1"; log_error "Installation aborted. L
 
 show_help() {
     cat << 'EOF'
-Usage: sudo bash install_amneziawg.sh [OPTIONS]
+Usage: sudo bash install_amneziawg_en.sh [OPTIONS]
 Script for automated installation and configuration of AmneziaWG 2.0 on Ubuntu 24.04.
 
 Options:
@@ -124,11 +124,11 @@ Options:
   -y, --yes             Auto-confirm (reboots, UFW, etc.)
 
 Examples:
-  sudo bash install_amneziawg.sh                             # Interactive installation
-  sudo bash install_amneziawg.sh --port=51820 --route-all    # Non-interactive
-  sudo bash install_amneziawg.sh --route-amnezia --yes       # Fully automated
-  sudo bash install_amneziawg.sh --uninstall                 # Uninstall
-  sudo bash install_amneziawg.sh --diagnostic                # Diagnostics
+  sudo bash install_amneziawg_en.sh                             # Interactive installation
+  sudo bash install_amneziawg_en.sh --port=51820 --route-all    # Non-interactive
+  sudo bash install_amneziawg_en.sh --route-amnezia --yes       # Fully automated
+  sudo bash install_amneziawg_en.sh --uninstall                 # Uninstall
+  sudo bash install_amneziawg_en.sh --diagnostic                # Diagnostics
 
 Repository: https://github.com/bivlked/amneziawg-installer
 EOF
