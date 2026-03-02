@@ -16,7 +16,7 @@ fi
 # --- Безопасный режим и Константы ---
 set -o pipefail
 
-SCRIPT_VERSION="5.4"
+SCRIPT_VERSION="5.5"
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
 STATE_FILE="$AWG_DIR/setup_state"
@@ -66,9 +66,10 @@ log_msg() {
     local safe_msg
     safe_msg=$(echo "$msg" | sed 's/%/%%/g')
     local entry="[$ts] $type: $safe_msg"
-    local color_start="" color_end="\033[0m"
+    local color_start="" color_end=""
 
     if [[ "$NO_COLOR" -eq 0 ]]; then
+        color_end="\033[0m"
         case "$type" in
             INFO)  color_start="\033[0;32m" ;;
             WARN)  color_start="\033[0;33m" ;;
@@ -869,7 +870,7 @@ step_uninstall() {
     echo "ВНИМАНИЕ! Полное удаление AmneziaWG и конфигураций."
     echo "Процесс необратим!"
     echo ""
-    local confirm="yes" backup="Y"
+    local confirm="" backup="Y"
     if [[ "$AUTO_YES" -eq 0 ]]; then
         read -p "Уверены? (введите 'yes'): " confirm < /dev/tty
         if [[ "$confirm" != "yes" ]]; then log "Деинсталляция отменена."; exit 1; fi
@@ -888,6 +889,7 @@ step_uninstall() {
     log "Остановка сервиса..."
     systemctl stop awg-quick@awg0 2>/dev/null
     systemctl disable awg-quick@awg0 2>/dev/null
+    modprobe -r amneziawg 2>/dev/null || true
     log "Снятие блокировок Fail2Ban..."
     if command -v fail2ban-client &>/dev/null; then
         fail2ban-client unban --all 2>/dev/null || true
@@ -913,7 +915,7 @@ step_uninstall() {
         /etc/apt/sources.list.d/amnezia-ubuntu-ppa-*.list \
         /etc/apt/sources.list.d/amnezia-ubuntu-ppa-*.sources \
         /etc/apt/keyrings/amnezia-ppa.gpg 2>/dev/null
-    rm -rf /etc/amnezia "$AWG_DIR" \
+    rm -rf /etc/amnezia \
         /etc/modules-load.d/amneziawg.conf \
         /etc/sysctl.d/99-amneziawg-security.conf \
         /etc/logrotate.d/amneziawg* \
@@ -925,9 +927,14 @@ step_uninstall() {
         sed -i '/disable_ipv6/d' /etc/sysctl.conf || log_warn "Ошибка sed sysctl.conf"
     fi
     sysctl -p --system 2>/dev/null
+    rm -rf /etc/fail2ban/ 2>/dev/null || true
+    rm -f /etc/apt/sources.list.d/*.bak-* 2>/dev/null || true
     log "Удаление cron и скриптов..."
     rm -f /etc/cron.d/*amneziawg* /usr/local/bin/*amneziawg*.sh 2>/dev/null
     log "=== ДЕИНСТАЛЛЯЦИЯ ЗАВЕРШЕНА ==="
+    # Копируем лог и удаляем рабочую директорию
+    cp "$LOG_FILE" "$HOME/awg_uninstall.log" 2>/dev/null || true
+    rm -rf "$AWG_DIR" 2>/dev/null || true
     exit 0
 }
 
@@ -1424,7 +1431,6 @@ step99_finish() {
     log "ВАЖНО: Для подключения используйте клиент Amnezia VPN >= 4.8.12.7"
     log "       с поддержкой протокола AWG 2.0"
     log " "
-    log "Очистка apt..."
     cleanup_apt
     log " "
 
@@ -1437,7 +1443,7 @@ step99_finish() {
 
     # Удаление файла состояния
     log "Удаление файла состояния установки..."
-    rm -f "$STATE_FILE" || log_warn "Не удалось удалить $STATE_FILE"
+    rm -f "$STATE_FILE" "${STATE_FILE}.lock" || log_warn "Не удалось удалить $STATE_FILE"
     log "Установка полностью завершена. Лог: $LOG_FILE"
     log "=============================================================================="
 }

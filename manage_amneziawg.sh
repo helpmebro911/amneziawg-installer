@@ -8,7 +8,7 @@ fi
 # ==============================================================================
 # Скрипт для управления пользователями (пирами) AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.4
+# Версия: 5.5
 # Дата: 2026-03-03
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -66,9 +66,10 @@ log_msg() {
     local safe_msg
     safe_msg=$(echo "$msg" | sed 's/%/%%/g')
     local entry="[$ts] $type: $safe_msg"
-    local color_start="" color_end="\033[0m"
+    local color_start="" color_end=""
 
     if [[ "$NO_COLOR" -eq 0 ]]; then
+        color_end="\033[0m"
         case "$type" in
             INFO)  color_start="\033[0;32m" ;;
             WARN)  color_start="\033[0;33m" ;;
@@ -527,7 +528,7 @@ list_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "Скрипт управления AmneziaWG 2.0 (v5.4)"
+    echo "Скрипт управления AmneziaWG 2.0 (v5.5)"
     echo "=============================================="
     echo "Использование: $0 [ОПЦИИ] <КОМАНДА> [АРГУМЕНТЫ]"
     echo ""
@@ -596,7 +597,7 @@ case $COMMAND in
 
         log "Удаление '$CLIENT_NAME'..."
         if remove_peer_from_server "$CLIENT_NAME"; then
-            log "Клиент '$CLIENT_NAME' удален из серверного конфига."
+            log "Клиент '$CLIENT_NAME' удалён из серверного конфига."
             rm -f "$AWG_DIR/$CLIENT_NAME.conf" "$AWG_DIR/$CLIENT_NAME.png"
             rm -f "$KEYS_DIR/${CLIENT_NAME}.private" "$KEYS_DIR/${CLIENT_NAME}.public"
             log "Файлы клиента удалены."

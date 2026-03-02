@@ -8,7 +8,7 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 peer management script
 # Author: @bivlked
-# Version: 5.4
+# Version: 5.5
 # Date: 2026-03-03
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -66,9 +66,10 @@ log_msg() {
     local safe_msg
     safe_msg=$(echo "$msg" | sed 's/%/%%/g')
     local entry="[$ts] $type: $safe_msg"
-    local color_start="" color_end="\033[0m"
+    local color_start="" color_end=""
 
     if [[ "$NO_COLOR" -eq 0 ]]; then
+        color_end="\033[0m"
         case "$type" in
             INFO)  color_start="\033[0;32m" ;;
             WARN)  color_start="\033[0;33m" ;;
@@ -527,7 +528,7 @@ list_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "AmneziaWG 2.0 management script (v5.4)"
+    echo "AmneziaWG 2.0 management script (v5.5)"
     echo "=============================================="
     echo "Usage: $0 [OPTIONS] <COMMAND> [ARGUMENTS]"
     echo ""

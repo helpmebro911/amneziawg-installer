@@ -10,6 +10,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.5] — 2026-03-02
+
+### Fixed
+
+- **uninstall:** Uninstall proceeded without confirmation when `/dev/tty` was unavailable (pipe, cron, non-TTY SSH) due to default `confirm="yes"`.
+- **uninstall:** Kernel module `amneziawg` remained loaded after uninstall — added `modprobe -r`.
+- **uninstall:** Working directory `/root/awg/` was recreated by logging after deletion — moved cleanup to the end.
+- **uninstall:** Empty `/etc/fail2ban/` and PPA backup `.bak-*` files remained after uninstall.
+- **--no-color:** Reset escape code `\033[0m` was not suppressed with `--no-color` — fixed `color_end` initialization.
+- **step99:** Duplicate "Cleaning apt…" message — removed extra `log` call before `cleanup_apt()`.
+- **step99:** Lock file `setup_state.lock` was not removed after installation completed.
+- **manage:** Inconsistent spelling "удален"/"удалён" — standardized (RU only).
+
+---
+
 ## [5.4] — 2026-03-02
 
 ### Fixed
