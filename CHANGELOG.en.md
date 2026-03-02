@@ -10,6 +10,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.4] — 2026-03-02
+
+### Fixed
+
+- **step5:** `manage_amneziawg.sh` download failure is now fatal (`die`), consistent with `awg_common.sh`.
+- **update_state():** `die()` inside flock subshell did not terminate the main process — moved outside.
+- **step6:** Server config backup now created *before* `render_server_config`, not after overwrite.
+- **cloud-init:** Conservative detection — cloud-init markers checked first to avoid removing it on cloud hosts.
+- **restore_backup():** Added non-interactive guard (explicit file path required in automation).
+- **Subnet:** Validation now only allows `/24` mask (matches actual IP allocation logic).
+- **Version:** Removed stale `v5.1` references in logs/diagnostics; introduced `SCRIPT_VERSION` constant.
+
+---
+
 ## [5.3] — 2026-03-02
 
 ### Added

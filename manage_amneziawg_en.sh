@@ -8,7 +8,7 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 peer management script
 # Author: @bivlked
-# Version: 5.2
+# Version: 5.4
 # Date: 2026-03-03
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -201,6 +201,9 @@ restore_backup() {
     local bd="$AWG_DIR/backups"
 
     if [[ -z "$bf" ]]; then
+        if ! is_interactive; then
+            die "Backup file path is required in non-interactive mode: restore <file>"
+        fi
         if [[ ! -d "$bd" ]] || [[ -z "$(ls -A "$bd" 2>/dev/null)" ]]; then
             die "No backups found in $bd."
         fi
@@ -524,7 +527,7 @@ list_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "AmneziaWG 2.0 management script (v5.2)"
+    echo "AmneziaWG 2.0 management script (v5.4)"
     echo "=============================================="
     echo "Usage: $0 [OPTIONS] <COMMAND> [ARGUMENTS]"
     echo ""
