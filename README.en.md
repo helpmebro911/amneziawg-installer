@@ -56,7 +56,7 @@
 * **OS:** A **clean** installation of **Ubuntu Server 24.04 LTS Minimal**.
 * **Access:** `root` privileges (via `sudo`).
 * **Internet:** Stable connection.
-* **Resources:** ~1 GB RAM (2+ GB recommended), ~3 GB disk space.
+* **Resources:** ~1 GB RAM (2+ GB recommended), minimum ~2 GB disk (3+ GB recommended).
 * **SSH:** SSH access to the server.
 
 **OS Compatibility:**
