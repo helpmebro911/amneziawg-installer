@@ -8,14 +8,15 @@ fi
 # ==============================================================================
 # Скрипт для установки и настройки AmneziaWG 2.0 на Ubuntu 24.04 LTS Minimal
 # Автор: @bivlked
-# Версия: 5.2
-# Дата: 2026-03-03
+# Версия: 5.4
+# Дата: 2026-03-02
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Безопасный режим и Константы ---
 set -o pipefail
 
+SCRIPT_VERSION="5.4"
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
 STATE_FILE="$AWG_DIR/setup_state"
@@ -145,8 +146,8 @@ update_state() {
     # Атомарная запись с flock для предотвращения race condition
     (
         flock -x 200
-        echo "$next_step" > "$STATE_FILE" || die "Ошибка записи состояния"
-    ) 200>"${STATE_FILE}.lock"
+        echo "$next_step" > "$STATE_FILE"
+    ) 200>"${STATE_FILE}.lock" || die "Ошибка записи состояния"
     log "Состояние: следующий шаг - $next_step"
 }
 
@@ -460,22 +461,16 @@ cleanup_system() {
     fi
 
     # cloud-init: удалять только если НЕ управляет сетью
+    # Консервативный подход: сначала проверяем маркеры cloud-init, затем renderer
     if dpkg-query -W -f='${Status}' cloud-init 2>/dev/null | grep -q "ok installed"; then
         local cloud_manages_network=0
-        if [[ -d /etc/netplan ]]; then
-            # Проверяем содержимое и имена файлов netplan
-            if grep -rq "renderer.*NetworkManager\|renderer.*networkd" /etc/netplan/ 2>/dev/null; then
-                cloud_manages_network=0
-            elif grep -rq "cloud-init" /etc/netplan/ 2>/dev/null; then
-                cloud_manages_network=1
-            elif ls /etc/netplan/*cloud-init* &>/dev/null; then
-                cloud_manages_network=1
-            fi
-        else
-            # Нет netplan — cloud-init может управлять сетью через /etc/network/
-            if [[ -f /etc/network/interfaces ]] && grep -q "cloud-init" /etc/network/interfaces 2>/dev/null; then
-                cloud_manages_network=1
-            fi
+        # Проверяем маркеры cloud-init (приоритет — безопасность)
+        if ls /etc/netplan/*cloud-init* &>/dev/null 2>&1; then
+            cloud_manages_network=1
+        elif grep -rq "cloud-init" /etc/netplan/ 2>/dev/null; then
+            cloud_manages_network=1
+        elif [[ -f /etc/network/interfaces ]] && grep -q "cloud-init" /etc/network/interfaces 2>/dev/null; then
+            cloud_manages_network=1
         fi
         if [[ $cloud_manages_network -eq 0 ]]; then
             log "Удаление cloud-init (сеть не зависит от него)..."
@@ -583,7 +578,7 @@ setup_advanced_sysctl() {
 
     cat > "$f" << EOF
 # AmneziaWG 2.0 Security/Performance Settings - $(date)
-# Автоматически сгенерировано install_amneziawg.sh v5.1
+# Автоматически сгенерировано install_amneziawg.sh v${SCRIPT_VERSION}
 
 # --- IP Forwarding ---
 net.ipv4.ip_forward = 1
@@ -800,7 +795,7 @@ create_diagnostic_report() {
         echo "=== AMNEZIAWG 2.0 DIAGNOSTIC REPORT ==="
         echo "Generated: $(date)"
         echo "Hostname: $(hostname)"
-        echo "Installer: v5.1"
+        echo "Installer: v${SCRIPT_VERSION}"
         echo ""
         echo "--- OS ---"
         lsb_release -ds 2>/dev/null || cat /etc/os-release
@@ -945,7 +940,7 @@ initialize_setup() {
     chown root:root "$AWG_DIR"
     touch "$LOG_FILE" || die "Не удалось создать лог-файл $LOG_FILE"
     chmod 640 "$LOG_FILE"
-    log "--- НАЧАЛО УСТАНОВКИ AmneziaWG 2.0 (v5.1) ---"
+    log "--- НАЧАЛО УСТАНОВКИ AmneziaWG 2.0 (v${SCRIPT_VERSION}) ---"
     log "### ШАГ 0: Инициализация и проверка параметров ###"
     if [ "$(id -u)" -ne 0 ]; then die "Запустите скрипт от root (sudo bash $0)."; fi
     cd "$AWG_DIR" || die "Ошибка перехода в $AWG_DIR"
@@ -1008,8 +1003,8 @@ initialize_setup() {
             read -p "Введите подсеть туннеля [${AWG_TUNNEL_SUBNET}]: " input_subnet < /dev/tty
             if [[ -n "$input_subnet" ]]; then AWG_TUNNEL_SUBNET=$input_subnet; fi
         fi
-        if ! [[ "$AWG_TUNNEL_SUBNET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
-            die "Некорректная подсеть: '$AWG_TUNNEL_SUBNET'."
+        if ! [[ "$AWG_TUNNEL_SUBNET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/24$ ]]; then
+            die "Некорректная подсеть: '$AWG_TUNNEL_SUBNET'. Поддерживается только маска /24."
         fi
         if [[ "$DISABLE_IPV6" == "default" ]]; then configure_ipv6; fi
         if [[ "$ALLOWED_IPS_MODE" == "default" ]]; then configure_routing_mode; fi
@@ -1309,7 +1304,7 @@ step5_download_scripts() {
         chmod 700 "$MANAGE_SCRIPT_PATH" || die "Ошибка chmod manage_amneziawg.sh"
         log "manage_amneziawg.sh скачан."
     else
-        log_error "Ошибка скачивания manage_amneziawg.sh"
+        die "Ошибка скачивания manage_amneziawg.sh"
     fi
 
     log "Шаг 5 завершен."
@@ -1343,15 +1338,17 @@ step6_generate_configs() {
         log "Серверные ключи уже существуют."
     fi
 
+    # Бэкап существующего серверного конфига ДО перезаписи
+    if [[ -f "$SERVER_CONF_FILE" ]]; then
+        local s_bak
+        s_bak="${SERVER_CONF_FILE}.bak-$(date +%F_%T)"
+        cp "$SERVER_CONF_FILE" "$s_bak" || log_warn "Ошибка бэкапа $s_bak"
+        log "Бэкап серверного конфига: $s_bak"
+    fi
+
     # Создание серверного конфига AWG 2.0
     log "Создание серверного конфига..."
     render_server_config || die "Ошибка создания серверного конфига."
-
-    # Бэкап серверного конфига
-    local s_bak
-    s_bak="${SERVER_CONF_FILE}.bak-$(date +%F_%T)"
-    cp "$SERVER_CONF_FILE" "$s_bak" || log_warn "Ошибка бэкапа $s_bak"
-    log "Бэкап серверного конфига: $s_bak"
 
     # Генерация клиентов по умолчанию
     log "Создание клиентов по умолчанию..."
