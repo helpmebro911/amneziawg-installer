@@ -10,8 +10,11 @@ body:
       description: Which script is affected?
       options:
         - install_amneziawg.sh
+        - install_amneziawg_en.sh
         - manage_amneziawg.sh
+        - manage_amneziawg_en.sh
         - awg_common.sh
+        - awg_common_en.sh
     validations:
       required: true
 
@@ -32,7 +35,7 @@ body:
     attributes:
       label: Script Version
       description: Version of the script (shown at the top of each script or in `--version` output).
-      placeholder: "e.g., 5.2"
+      placeholder: "e.g., 5.5"
     validations:
       required: true
 

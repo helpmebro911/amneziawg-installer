@@ -4,7 +4,7 @@
 # Shared function library for AmneziaWG 2.0
 # Author: @bivlked
 # Version: 5.5
-# Date: 2026-03-02
+# Date: 2026-03-03
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 #
@@ -19,7 +19,7 @@ CONFIG_FILE="${CONFIG_FILE:-$AWG_DIR/awgsetup_cfg.init}"
 SERVER_CONF_FILE="${SERVER_CONF_FILE:-/etc/amnezia/amneziawg/awg0.conf}"
 KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
-AWG_COMMON_VERSION="5.2"
+AWG_COMMON_VERSION="5.5"
 
 # --- Trap for auto-cleanup of temporary files ---
 _AWG_TEMP_FILES=()

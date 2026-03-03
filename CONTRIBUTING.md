@@ -38,16 +38,16 @@ Before submitting a PR, ensure:
 
 1. **Syntax check** passes:
    ```bash
-   bash -n install_amneziawg.sh
-   bash -n manage_amneziawg.sh
-   bash -n awg_common.sh
+   for f in install_amneziawg.sh install_amneziawg_en.sh manage_amneziawg.sh manage_amneziawg_en.sh awg_common.sh awg_common_en.sh; do
+     bash -n "$f" && echo "OK: $f"
+   done
    ```
 
 2. **ShellCheck** passes:
    ```bash
-   shellcheck -s bash -S warning install_amneziawg.sh
-   shellcheck -s bash -S warning manage_amneziawg.sh
-   shellcheck -s bash -S warning awg_common.sh
+   for f in install_amneziawg.sh install_amneziawg_en.sh manage_amneziawg.sh manage_amneziawg_en.sh awg_common.sh awg_common_en.sh; do
+     shellcheck -s bash -S warning "$f"
+   done
    ```
 
 3. **VPS testing** (for script changes): test on a clean Ubuntu 24.04 LTS minimal server installation. The full test matrix includes:
@@ -85,7 +85,7 @@ Examples:
 ```
 fix: correct UFW rule ordering for dual-stack setups
 feat: add --diagnostic flag for troubleshooting
-docs: update CHANGELOG for v5.1
+docs: update CHANGELOG for v5.5
 ```
 
 ## Pull Request Workflow

@@ -271,7 +271,7 @@ PersistentKeepalive = 33
 ## 🖥️ CLI Параметры запуска скриптов
 
 <a id="install-cli-adv"></a>
-### install_amneziawg.sh (v5.2)
+### install_amneziawg.sh (v5.5)
 
 ```
 Опции:
@@ -292,7 +292,7 @@ PersistentKeepalive = 33
 ```
 
 <a id="manage-cli-adv"></a>
-### manage_amneziawg.sh (v5.2)
+### manage_amneziawg.sh (v5.5)
 
 ```
 Опции:
@@ -350,13 +350,16 @@ sudo bash /root/awg/manage_amneziawg.sh restore
 ## 🛠️ Технические детали
 
 <a id="architecture-adv"></a>
-### Архитектура скриптов (v5.2)
+### Архитектура скриптов (v5.5)
 
 | Файл | Назначение |
 |------|-----------|
 | `install_amneziawg.sh` | Установщик: state machine из 8 шагов с поддержкой resume |
 | `manage_amneziawg.sh` | Управление: add/remove/list/regen/backup/restore |
 | `awg_common.sh` | Общая библиотека: ключи, конфиги, QR, peer management |
+| `install_amneziawg_en.sh` | Установщик (English версия) |
+| `manage_amneziawg_en.sh` | Управление (English версия) |
+| `awg_common_en.sh` | Общая библиотека (English версия) |
 
 `awg_common.sh` подключается через `source` из обоих скриптов. Установщик скачивает его на шаге 5.
 

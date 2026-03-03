@@ -271,7 +271,7 @@ PersistentKeepalive = 33
 ## 🖥️ CLI Parameters
 
 <a id="install-cli-adv"></a>
-### install_amneziawg.sh (v5.2)
+### install_amneziawg.sh (v5.5)
 
 ```
 Options:
@@ -292,7 +292,7 @@ Options:
 ```
 
 <a id="manage-cli-adv"></a>
-### manage_amneziawg.sh (v5.2)
+### manage_amneziawg.sh (v5.5)
 
 ```
 Options:
@@ -350,7 +350,7 @@ sudo bash /root/awg/manage_amneziawg.sh restore
 ## 🛠️ Technical Details
 
 <a id="architecture-adv"></a>
-### Script Architecture (v5.2)
+### Script Architecture (v5.5)
 
 | File | Purpose |
 |------|---------|
