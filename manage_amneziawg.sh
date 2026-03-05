@@ -8,7 +8,7 @@ fi
 # ==============================================================================
 # Скрипт для управления пользователями (пирами) AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.5
+# Версия: 5.5.1
 # Дата: 2026-03-03
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -64,7 +64,7 @@ log_msg() {
     local ts
     ts=$(date +'%F %T')
     local safe_msg
-    safe_msg=$(echo "$msg" | sed 's/%/%%/g')
+    safe_msg="${msg//%/%%}"
     local entry="[$ts] $type: $safe_msg"
     local color_start="" color_end=""
 
@@ -115,7 +115,7 @@ escape_sed() {
 confirm_action() {
     if ! is_interactive; then return 0; fi
     local action="$1" subject="$2"
-    read -p "Вы действительно хотите $action $subject? [y/N]: " confirm < /dev/tty
+    read -rp "Вы действительно хотите $action $subject? [y/N]: " confirm < /dev/tty
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         return 0
     else
@@ -221,7 +221,7 @@ restore_backup() {
             ((i++))
         done <<< "$backups"
 
-        read -p "Номер для восстановления (0-отмена): " choice < /dev/tty
+        read -rp "Номер для восстановления (0-отмена): " choice < /dev/tty
         if ! [[ "$choice" =~ ^[0-9]+$ ]] || [[ "$choice" -eq 0 ]] || [[ "$choice" -ge "$i" ]]; then
             log "Отмена."
             return 1
@@ -371,7 +371,7 @@ check_server() {
     if [[ "$port" -eq 0 ]]; then
         log_warn " - Не удалось определить порт."
     else
-        if ! ss -lunp | grep -q ":${port} "; then
+        if ! ss -lunp | grep -qP ":${port}\s"; then
             log_error " - Порт ${port}/udp НЕ прослушивается!"
             ok=0
         else
@@ -528,7 +528,7 @@ list_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "Скрипт управления AmneziaWG 2.0 (v5.5)"
+    echo "Скрипт управления AmneziaWG 2.0 (v5.5.1)"
     echo "=============================================="
     echo "Использование: $0 [ОПЦИИ] <КОМАНДА> [АРГУМЕНТЫ]"
     echo ""
@@ -626,12 +626,12 @@ case $COMMAND in
             if [[ -z "$all_clients" ]]; then
                 log "Клиенты не найдены."
             else
-                echo "$all_clients" | while IFS= read -r cname; do
-                    cname=$(echo "$cname" | xargs)
+                while IFS= read -r cname; do
+                    cname="${cname## }"; cname="${cname%% }"
                     [[ -z "$cname" ]] && continue
                     log "Перегенерация '$cname'..."
                     regenerate_client "$cname" || log_warn "Ошибка перегенерации '$cname'"
-                done
+                done <<< "$all_clients"
                 log "Перегенерация завершена."
             fi
         fi

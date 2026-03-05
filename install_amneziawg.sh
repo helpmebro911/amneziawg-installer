@@ -8,7 +8,7 @@ fi
 # ==============================================================================
 # Скрипт для установки и настройки AmneziaWG 2.0 на Ubuntu 24.04 LTS Minimal
 # Автор: @bivlked
-# Версия: 5.5
+# Версия: 5.5.1
 # Дата: 2026-03-02
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -16,7 +16,7 @@ fi
 # --- Безопасный режим и Константы ---
 set -o pipefail
 
-SCRIPT_VERSION="5.5"
+SCRIPT_VERSION="5.5.1"
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
 STATE_FILE="$AWG_DIR/setup_state"
@@ -32,6 +32,14 @@ MANAGE_SCRIPT_PATH="$AWG_DIR/manage_amneziawg.sh"
 UNINSTALL=0; HELP=0; DIAGNOSTIC=0; VERBOSE=0; NO_COLOR=0; AUTO_YES=0
 CLI_PORT=""; CLI_SUBNET=""; CLI_DISABLE_IPV6="default"
 CLI_ROUTING_MODE="default"; CLI_CUSTOM_ROUTES=""; CLI_ENDPOINT=""
+
+# --- Автоочистка временных файлов ---
+_install_temp_files=()
+_install_cleanup() {
+    local f
+    for f in "${_install_temp_files[@]}"; do [[ -f "$f" ]] && rm -f "$f"; done
+}
+trap _install_cleanup EXIT
 
 # --- Обработка аргументов ---
 while [[ $# -gt 0 ]]; do
@@ -64,7 +72,7 @@ log_msg() {
     local ts
     ts=$(date +'%F %T')
     local safe_msg
-    safe_msg=$(echo "$msg" | sed 's/%/%%/g')
+    safe_msg="${msg//%/%%}"
     local entry="[$ts] $type: $safe_msg"
     local color_start="" color_end=""
 
@@ -164,7 +172,7 @@ request_reboot() {
     echo "" >> "$LOG_FILE"
     local confirm="y"
     if [[ "$AUTO_YES" -eq 0 ]]; then
-        read -p "Перезагрузить сейчас? [y/N]: " confirm < /dev/tty
+        read -rp "Перезагрузить сейчас? [y/N]: " confirm < /dev/tty
     else
         log "Автоматическое подтверждение перезагрузки (--yes)."
     fi
@@ -191,7 +199,7 @@ check_os_version() {
     if [[ "$os_id" != "Ubuntu" || "$os_ver" != "24.04" ]]; then
         log_warn "Обнаружена $os_id $os_ver. Скрипт разработан для Ubuntu 24.04 LTS."
         if [[ "$AUTO_YES" -eq 0 ]]; then
-            read -p "Продолжить? [y/N]: " confirm < /dev/tty
+            read -rp "Продолжить? [y/N]: " confirm < /dev/tty
             if ! [[ "$confirm" =~ ^[Yy]$ ]]; then die "Отмена."; fi
         else
             log "Продолжаем на $os_id $os_ver (--yes)."
@@ -213,7 +221,7 @@ check_free_space() {
     if [ "$avail" -lt "$req" ]; then
         log_warn "Доступно $avail МБ. Рекомендуется >= $req МБ."
         if [[ "$AUTO_YES" -eq 0 ]]; then
-            read -p "Продолжить? [y/N]: " confirm < /dev/tty
+            read -rp "Продолжить? [y/N]: " confirm < /dev/tty
             if ! [[ "$confirm" =~ ^[Yy]$ ]]; then die "Отмена."; fi
         else
             log "Продолжаем с $avail МБ (--yes)."
@@ -227,7 +235,7 @@ check_port_availability() {
     local port=$1
     log "Проверка порта $port..."
     local proc
-    proc=$(ss -lunp | grep ":${port} ")
+    proc=$(ss -lunp | grep -P ":${port}\s")
     if [[ -n "$proc" ]]; then
         log_error "Порт ${port}/udp уже используется! Процесс: $proc"
         return 1
@@ -272,7 +280,7 @@ configure_ipv6() {
         DISABLE_IPV6=1
         log "IPv6 отключен (--yes, по умолчанию)."
     else
-        read -p "Отключить IPv6 (рекомендуется)? [Y/n]: " dis_ipv6 < /dev/tty
+        read -rp "Отключить IPv6 (рекомендуется)? [Y/n]: " dis_ipv6 < /dev/tty
         if [[ "$dis_ipv6" =~ ^[Nn]$ ]]; then
             DISABLE_IPV6=0
         else
@@ -300,14 +308,14 @@ configure_routing_mode() {
         echo "  1) Весь трафик (0.0.0.0/0) - Макс. приватность, может блокировать LAN"
         echo "  2) Список Amnezia+DNS (умолч.) - Рекомендуется для обхода блокировок"
         echo "  3) Только указанные сети (Split Tunneling)"
-        read -p "Ваш выбор [2]: " r_mode < /dev/tty
+        read -rp "Ваш выбор [2]: " r_mode < /dev/tty
         ALLOWED_IPS_MODE=${r_mode:-2}
     fi
     case "$ALLOWED_IPS_MODE" in
         1) ALLOWED_IPS="0.0.0.0/0"
            log "Выбран режим: Весь трафик." ;;
         3) if [[ -z "$CLI_CUSTOM_ROUTES" ]]; then
-               read -p "Введите сети (a.b.c.d/xx,...): " custom < /dev/tty
+               read -rp "Введите сети (a.b.c.d/xx,...): " custom < /dev/tty
                ALLOWED_IPS=$custom
            else
                ALLOWED_IPS=$CLI_CUSTOM_ROUTES
@@ -628,7 +636,7 @@ setup_improved_firewall() {
         local confirm_ufw="y"
         if [[ "$AUTO_YES" -eq 0 ]]; then
             sleep 5
-            read -p "Включить UFW? [y/N]: " confirm_ufw < /dev/tty
+            read -rp "Включить UFW? [y/N]: " confirm_ufw < /dev/tty
         else
             log "Автоматическое включение UFW (--yes)."
         fi
@@ -729,7 +737,7 @@ check_service_status() {
         port_check=${port_check:-0}
     fi
     if [[ "$port_check" -ne 0 ]]; then
-        if ! ss -lunp | grep -q ":${port_check} "; then
+        if ! ss -lunp | grep -qP ":${port_check}\s"; then
             log_error "Порт $port_check/udp не прослушивается!"
             ok=0
         fi
@@ -838,9 +846,9 @@ step_uninstall() {
     echo ""
     local confirm="" backup="Y"
     if [[ "$AUTO_YES" -eq 0 ]]; then
-        read -p "Уверены? (введите 'yes'): " confirm < /dev/tty
+        read -rp "Уверены? (введите 'yes'): " confirm < /dev/tty
         if [[ "$confirm" != "yes" ]]; then log "Деинсталляция отменена."; exit 1; fi
-        read -p "Создать бэкап перед удалением? [Y/n]: " backup < /dev/tty
+        read -rp "Создать бэкап перед удалением? [Y/n]: " backup < /dev/tty
     else
         log "Автоматическое подтверждение деинсталляции (--yes)."
     fi
@@ -966,17 +974,19 @@ initialize_setup() {
     if [[ "$config_exists" -eq 0 ]]; then
         log "Запрос настроек у пользователя (первый запуск)."
         if [[ "$AUTO_YES" -eq 0 ]]; then
-            read -p "Введите UDP порт AmneziaWG (1024-65535) [${AWG_PORT}]: " input_port < /dev/tty
+            read -rp "Введите UDP порт AmneziaWG (1024-65535) [${AWG_PORT}]: " input_port < /dev/tty
             if [[ -n "$input_port" ]]; then AWG_PORT=$input_port; fi
         fi
         if ! [[ "$AWG_PORT" =~ ^[0-9]+$ ]] || [ "$AWG_PORT" -lt 1024 ] || [ "$AWG_PORT" -gt 65535 ]; then
             die "Некорректный порт."
         fi
         if [[ "$AUTO_YES" -eq 0 ]]; then
-            read -p "Введите подсеть туннеля [${AWG_TUNNEL_SUBNET}]: " input_subnet < /dev/tty
+            read -rp "Введите подсеть туннеля [${AWG_TUNNEL_SUBNET}]: " input_subnet < /dev/tty
             if [[ -n "$input_subnet" ]]; then AWG_TUNNEL_SUBNET=$input_subnet; fi
         fi
-        if ! [[ "$AWG_TUNNEL_SUBNET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/24$ ]]; then
+        if ! [[ "$AWG_TUNNEL_SUBNET" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/24$ ]] \
+           || [[ "${BASH_REMATCH[1]}" -gt 255 ]] || [[ "${BASH_REMATCH[2]}" -gt 255 ]] \
+           || [[ "${BASH_REMATCH[3]}" -gt 255 ]] || [[ "${BASH_REMATCH[4]}" -gt 255 ]]; then
             die "Некорректная подсеть: '$AWG_TUNNEL_SUBNET'. Поддерживается только маска /24."
         fi
         if [[ "$DISABLE_IPV6" == "default" ]]; then configure_ipv6; fi
@@ -1264,7 +1274,7 @@ step5_download_scripts() {
 
     # Скачивание awg_common.sh
     log "Скачивание $COMMON_SCRIPT_PATH..."
-    if curl -fLso "$COMMON_SCRIPT_PATH" "$COMMON_SCRIPT_URL"; then
+    if curl -fLso "$COMMON_SCRIPT_PATH" --max-time 60 --retry 2 "$COMMON_SCRIPT_URL"; then
         chmod 700 "$COMMON_SCRIPT_PATH" || die "Ошибка chmod awg_common.sh"
         log "awg_common.sh скачан."
     else
@@ -1273,7 +1283,7 @@ step5_download_scripts() {
 
     # Скачивание manage_amneziawg.sh
     log "Скачивание $MANAGE_SCRIPT_PATH..."
-    if curl -fLso "$MANAGE_SCRIPT_PATH" "$MANAGE_SCRIPT_URL"; then
+    if curl -fLso "$MANAGE_SCRIPT_PATH" --max-time 60 --retry 2 "$MANAGE_SCRIPT_URL"; then
         chmod 700 "$MANAGE_SCRIPT_PATH" || die "Ошибка chmod manage_amneziawg.sh"
         log "manage_amneziawg.sh скачан."
     else

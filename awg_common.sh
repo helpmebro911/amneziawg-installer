@@ -3,7 +3,7 @@
 # ==============================================================================
 # Общая библиотека функций для AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.5
+# Версия: 5.5.1
 # Дата: 2026-03-03
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -19,7 +19,7 @@ CONFIG_FILE="${CONFIG_FILE:-$AWG_DIR/awgsetup_cfg.init}"
 SERVER_CONF_FILE="${SERVER_CONF_FILE:-/etc/amnezia/amneziawg/awg0.conf}"
 KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
-AWG_COMMON_VERSION="5.5"
+AWG_COMMON_VERSION="5.5.1"
 
 # --- Trap для автоочистки временных файлов ---
 _AWG_TEMP_FILES=()
@@ -152,7 +152,10 @@ generate_keypair() {
         log_error "Ошибка записи публичного ключа для '$name'"
         return 1
     }
-    chmod 600 "$KEYS_DIR/${name}.private" "$KEYS_DIR/${name}.public"
+    chmod 600 "$KEYS_DIR/${name}.private" "$KEYS_DIR/${name}.public" || {
+        log_error "Ошибка установки прав на ключи '$name'"
+        return 1
+    }
     log_debug "Ключи для '$name' сгенерированы."
     return 0
 }
@@ -172,7 +175,10 @@ generate_server_keys() {
 
     echo "$privkey" > "$AWG_DIR/server_private.key" || return 1
     echo "$pubkey" > "$AWG_DIR/server_public.key" || return 1
-    chmod 600 "$AWG_DIR/server_private.key" "$AWG_DIR/server_public.key"
+    chmod 600 "$AWG_DIR/server_private.key" "$AWG_DIR/server_public.key" || {
+        log_error "Ошибка установки прав на серверные ключи"
+        return 1
+    }
     log "Серверные ключи сгенерированы."
     return 0
 }

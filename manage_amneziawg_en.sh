@@ -8,7 +8,7 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 peer management script
 # Author: @bivlked
-# Version: 5.5
+# Version: 5.5.1
 # Date: 2026-03-03
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -64,7 +64,7 @@ log_msg() {
     local ts
     ts=$(date +'%F %T')
     local safe_msg
-    safe_msg=$(echo "$msg" | sed 's/%/%%/g')
+    safe_msg="${msg//%/%%}"
     local entry="[$ts] $type: $safe_msg"
     local color_start="" color_end=""
 
@@ -115,7 +115,7 @@ escape_sed() {
 confirm_action() {
     if ! is_interactive; then return 0; fi
     local action="$1" subject="$2"
-    read -p "Are you sure you want to $action $subject? [y/N]: " confirm < /dev/tty
+    read -rp "Are you sure you want to $action $subject? [y/N]: " confirm < /dev/tty
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         return 0
     else
@@ -221,7 +221,7 @@ restore_backup() {
             ((i++))
         done <<< "$backups"
 
-        read -p "Number to restore (0-cancel): " choice < /dev/tty
+        read -rp "Number to restore (0-cancel): " choice < /dev/tty
         if ! [[ "$choice" =~ ^[0-9]+$ ]] || [[ "$choice" -eq 0 ]] || [[ "$choice" -ge "$i" ]]; then
             log "Cancelled."
             return 1
@@ -371,7 +371,7 @@ check_server() {
     if [[ "$port" -eq 0 ]]; then
         log_warn " - Failed to determine port."
     else
-        if ! ss -lunp | grep -q ":${port} "; then
+        if ! ss -lunp | grep -qP ":${port}\s"; then
             log_error " - Port ${port}/udp is NOT listening!"
             ok=0
         else
@@ -528,7 +528,7 @@ list_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "AmneziaWG 2.0 management script (v5.5)"
+    echo "AmneziaWG 2.0 management script (v5.5.1)"
     echo "=============================================="
     echo "Usage: $0 [OPTIONS] <COMMAND> [ARGUMENTS]"
     echo ""
@@ -626,12 +626,12 @@ case $COMMAND in
             if [[ -z "$all_clients" ]]; then
                 log "No clients found."
             else
-                echo "$all_clients" | while IFS= read -r cname; do
-                    cname=$(echo "$cname" | xargs)
+                while IFS= read -r cname; do
+                    cname="${cname## }"; cname="${cname%% }"
                     [[ -z "$cname" ]] && continue
                     log "Regenerating '$cname'..."
                     regenerate_client "$cname" || log_warn "Regeneration error '$cname'"
-                done
+                done <<< "$all_clients"
                 log "Regeneration completed."
             fi
         fi
