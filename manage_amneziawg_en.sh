@@ -8,8 +8,8 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 peer management script
 # Author: @bivlked
-# Version: 5.5.1
-# Date: 2026-03-05
+# Version: 5.6.0
+# Date: 2026-03-12
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
@@ -23,6 +23,8 @@ COMMON_SCRIPT_PATH="$AWG_DIR/awg_common.sh"
 LOG_FILE="$AWG_DIR/manage_amneziawg.log"
 NO_COLOR=0
 VERBOSE_LIST=0
+JSON_OUTPUT=0
+EXPIRES_DURATION=""
 
 # --- Argument handling ---
 COMMAND=""
@@ -32,6 +34,8 @@ while [[ $# -gt 0 ]]; do
         -h|--help)         COMMAND="help"; break ;;
         -v|--verbose)      VERBOSE_LIST=1; shift ;;
         --no-color)        NO_COLOR=1; shift ;;
+        --json)            JSON_OUTPUT=1; shift ;;
+        --expires=*)       EXPIRES_DURATION="${1#*=}"; shift ;;
         --conf-dir=*)      AWG_DIR="${1#*=}"; shift ;;
         --server-conf=*)   SERVER_CONF_FILE="${1#*=}"; shift ;;
         --*)               echo "Unknown option: $1" >&2; COMMAND="help"; break ;;
@@ -44,7 +48,6 @@ while [[ $# -gt 0 ]]; do
             shift ;;
     esac
 done
-ARGS+=("$@")
 CLIENT_NAME="${ARGS[0]}"
 PARAM="${ARGS[1]}"
 VALUE="${ARGS[2]}"
@@ -181,7 +184,7 @@ backup_configs() {
 
     mkdir -p "$td/server" "$td/clients" "$td/keys"
     cp -a "$SERVER_CONF_FILE"* "$td/server/" 2>/dev/null
-    cp -a "$AWG_DIR"/*.conf "$AWG_DIR"/*.png "$CONFIG_FILE" "$td/clients/" 2>/dev/null || true
+    cp -a "$AWG_DIR"/*.conf "$AWG_DIR"/*.png "$AWG_DIR"/*.vpnuri "$CONFIG_FILE" "$td/clients/" 2>/dev/null || true
     cp -a "$KEYS_DIR"/* "$td/keys/" 2>/dev/null || true
     cp -a "$AWG_DIR/server_private.key" "$AWG_DIR/server_public.key" "$td/" 2>/dev/null || true
 
@@ -438,7 +441,7 @@ list_clients() {
 
     if [[ $verbose -eq 1 ]]; then
         printf "%-20s | %-7s | %-7s | %-15s | %-15s | %s\n" "Client name" "Conf" "QR" "IP address" "Key (start)" "Status"
-        printf -- "-%.0s" {1..85}
+        printf -- "-%.0s" {1..95}
         echo
     else
         printf "%-20s | %-7s | %-7s | %s\n" "Client name" "Conf" "QR" "Status"
@@ -447,7 +450,7 @@ list_clients() {
     fi
 
     while IFS= read -r name; do
-        name=$(echo "$name" | xargs)
+        name="${name#"${name%%[![:space:]]*}"}"; name="${name%"${name##*[![:space:]]}"}"
         if [[ -z "$name" ]]; then continue; fi
         ((tot++))
 
@@ -468,7 +471,7 @@ list_clients() {
                 if [[ "$line" == "[Peer]"* && "$peer_block_started" -eq 1 ]]; then break; fi
                 if [[ "$line" == "#_Name = ${name}" ]]; then peer_block_started=1; fi
                 if [[ "$peer_block_started" -eq 1 && "$line" == "PublicKey = "* ]]; then
-                    current_pk=$(echo "$line" | cut -d' ' -f3)
+                    current_pk="${line#PublicKey = }"
                     break
                 fi
             done < "$SERVER_CONF_FILE"
@@ -482,7 +485,7 @@ list_clients() {
                         if echo "$handshake_line" | grep -q "seconds ago"; then
                             local sec
                             sec=$(echo "$handshake_line" | grep -oP '\d+(?= seconds ago)')
-                            if [[ "$sec" -lt 180 ]]; then
+                            if [[ -n "$sec" && "$sec" =~ ^[0-9]+$ ]] && [[ "$sec" -lt 180 ]]; then
                                 st="Active"
                                 color_start="\033[0;32m"
                                 ((act++))
@@ -511,14 +514,146 @@ list_clients() {
             fi
         fi
 
+        # Expiry info
+        local exp_str=""
+        local exp_ts
+        exp_ts=$(get_client_expiry "$name" 2>/dev/null)
+        if [[ -n "$exp_ts" ]]; then
+            exp_str=" [$(format_remaining "$exp_ts")]"
+        fi
+
         if [[ $verbose -eq 1 ]]; then
-            printf "%-20s | %-7s | %-7s | %-15s | %-15s | ${color_start}%s${color_end}\n" "$name" "$cf" "$png" "$ip" "$pk" "$st"
+            printf "%-20s | %-7s | %-7s | %-15s | %-15s | ${color_start}%s${color_end}%s\n" "$name" "$cf" "$png" "$ip" "$pk" "$st" "$exp_str"
         else
-            printf "%-20s | %-7s | %-7s | ${color_start}%s${color_end}\n" "$name" "$cf" "$png" "$st"
+            printf "%-20s | %-7s | %-7s | ${color_start}%s${color_end}%s\n" "$name" "$cf" "$png" "$st" "$exp_str"
         fi
     done <<< "$clients"
     echo ""
     log "Total clients: $tot, Active/Recent: $act"
+}
+
+# ==============================================================================
+# Traffic statistics
+# ==============================================================================
+
+# Escape string for safe JSON inclusion
+json_escape() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+# Format bytes to human-readable
+format_bytes() {
+    local bytes="${1:-0}"
+    if [[ ! "$bytes" =~ ^[0-9]+$ ]]; then printf "0 B"; return; fi
+    if [[ "$bytes" -ge 1073741824 ]]; then
+        awk "BEGIN{printf \"%.2f GiB\", $bytes/1073741824}"
+    elif [[ "$bytes" -ge 1048576 ]]; then
+        awk "BEGIN{printf \"%.2f MiB\", $bytes/1048576}"
+    elif [[ "$bytes" -ge 1024 ]]; then
+        awk "BEGIN{printf \"%.1f KiB\", $bytes/1024}"
+    else
+        printf "%d B" "$bytes"
+    fi
+}
+
+stats_clients() {
+    local clients
+    clients=$(grep '^#_Name = ' "$SERVER_CONF_FILE" | sed 's/^#_Name = //' | sort) || clients=""
+    if [[ -z "$clients" ]]; then
+        if [[ "$JSON_OUTPUT" -eq 1 ]]; then
+            echo "[]"
+        else
+            log "No clients found."
+        fi
+        return 0
+    fi
+
+    # Get awg show data
+    local awg_dump
+    awg_dump=$(awg show awg0 dump 2>/dev/null) || {
+        log_error "Failed to get awg show data."
+        return 1
+    }
+
+    # Map: public key -> client name (single-pass)
+    declare -A pk_to_name
+    local _current_name=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" == "#_Name = "* ]]; then
+            _current_name="${line#\#_Name = }"
+            _current_name="${_current_name## }"; _current_name="${_current_name%% }"
+        elif [[ -n "$_current_name" && "$line" == "PublicKey = "* ]]; then
+            local _pk="${line#PublicKey = }"
+            _pk="${_pk## }"; _pk="${_pk%% }"
+            [[ -n "$_pk" ]] && pk_to_name["$_pk"]="$_current_name"
+            _current_name=""
+        fi
+    done < "$SERVER_CONF_FILE"
+
+    local json_entries=()
+    local table_rows=()
+    local total_rx=0 total_tx=0
+
+    # awg show dump: each peer line = pubkey psk endpoint allowed-ips latest-handshake rx tx keepalive
+    # shellcheck disable=SC2034
+    while IFS=$'\t' read -r pk psk ep aips handshake rx tx keepalive; do
+        # Skip interface line (first line)
+        if [[ -z "$psk" ]]; then continue; fi
+        local cname="${pk_to_name[$pk]:-unknown}"
+        if [[ "$cname" == "unknown" ]]; then continue; fi
+
+        local ip="-"
+        if [[ -f "$AWG_DIR/${cname}.conf" ]]; then
+            ip=$(grep -oP 'Address = \K[0-9.]+' "$AWG_DIR/${cname}.conf" 2>/dev/null) || ip="?"
+        fi
+
+        local hs_str="never"
+        local status="Inactive"
+        if [[ "$handshake" =~ ^[0-9]+$ && "$handshake" -gt 0 ]]; then
+            local now
+            now=$(date +%s)
+            local diff=$((now - handshake))
+            if [[ $diff -lt 180 ]]; then
+                status="Active"
+            elif [[ $diff -lt 86400 ]]; then
+                status="Recent"
+            fi
+            hs_str=$(date -d "@$handshake" '+%F %T' 2>/dev/null || echo "$handshake")
+        fi
+
+        total_rx=$((total_rx + rx))
+        total_tx=$((total_tx + tx))
+
+        if [[ "$JSON_OUTPUT" -eq 1 ]]; then
+            json_entries+=("{\"name\":\"$(json_escape "$cname")\",\"ip\":\"$(json_escape "$ip")\",\"rx\":$rx,\"tx\":$tx,\"last_handshake\":$handshake,\"status\":\"$(json_escape "$status")\"}")
+        else
+            local rx_h tx_h
+            rx_h=$(format_bytes "$rx")
+            tx_h=$(format_bytes "$tx")
+            table_rows+=("$(printf "%-15s | %-15s | %-12s | %-12s | %-19s | %s" "$cname" "$ip" "$rx_h" "$tx_h" "$hs_str" "$status")")
+        fi
+    done <<< "$awg_dump"
+
+    if [[ "$JSON_OUTPUT" -eq 1 ]]; then
+        ( IFS=","; echo "[${json_entries[*]}]" )
+    else
+        log "Client traffic statistics:"
+        echo ""
+        printf "%-15s | %-15s | %-12s | %-12s | %-19s | %s\n" "Name" "IP" "Received" "Sent" "Last handshake" "Status"
+        printf -- "-%.0s" {1..95}
+        echo
+        for row in "${table_rows[@]}"; do
+            echo "$row"
+        done
+        echo ""
+        log "Total: Received $(format_bytes "$total_rx"), Sent $(format_bytes "$total_tx")"
+    fi
 }
 
 # ==============================================================================
@@ -528,7 +663,7 @@ list_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "AmneziaWG 2.0 management script (v5.5.1)"
+    echo "AmneziaWG 2.0 management script (v5.6.0)"
     echo "=============================================="
     echo "Usage: $0 [OPTIONS] <COMMAND> [ARGUMENTS]"
     echo ""
@@ -536,13 +671,16 @@ usage() {
     echo "  -h, --help            Show this help"
     echo "  -v, --verbose         Verbose output (for list command)"
     echo "  --no-color            Disable colored output"
+    echo "  --json                JSON output (for stats command)"
+    echo "  --expires=DURATION    Expiry time for add (1h, 12h, 1d, 7d, 30d)"
     echo "  --conf-dir=PATH       Specify AWG directory (default: $AWG_DIR)"
     echo "  --server-conf=PATH    Specify server config file"
     echo ""
     echo "Commands:"
-    echo "  add <name>            Add a client"
+    echo "  add <name> [--expires=DURATION]  Add a client (with optional expiry)"
     echo "  remove <name>         Remove a client"
     echo "  list [-v]             List clients"
+    echo "  stats [--json]        Client traffic statistics"
     echo "  regen [name]          Regenerate client file(s)"
     echo "  modify <name> <p> <v> Modify a client parameter"
     echo "  backup                Create a backup"
@@ -582,6 +720,15 @@ case $COMMAND in
         if generate_client "$CLIENT_NAME"; then
             log "Client '$CLIENT_NAME' added."
             log "Files: $AWG_DIR/${CLIENT_NAME}.conf, $AWG_DIR/${CLIENT_NAME}.png"
+            if [[ -f "$AWG_DIR/${CLIENT_NAME}.vpnuri" ]]; then
+                log "vpn:// URI: $AWG_DIR/${CLIENT_NAME}.vpnuri"
+                log "To import into Amnezia Client, copy the contents of the .vpnuri file"
+            fi
+            if [[ -n "$EXPIRES_DURATION" ]]; then
+                if set_client_expiry "$CLIENT_NAME" "$EXPIRES_DURATION"; then
+                    install_expiry_cron
+                fi
+            fi
             log "IMPORTANT: Service restart required: sudo systemctl restart awg-quick@awg0"
         else
             log_error "Error adding client '$CLIENT_NAME'."
@@ -598,8 +745,9 @@ case $COMMAND in
         log "Removing '$CLIENT_NAME'..."
         if remove_peer_from_server "$CLIENT_NAME"; then
             log "Client '$CLIENT_NAME' removed from server config."
-            rm -f "$AWG_DIR/$CLIENT_NAME.conf" "$AWG_DIR/$CLIENT_NAME.png"
+            rm -f "$AWG_DIR/$CLIENT_NAME.conf" "$AWG_DIR/$CLIENT_NAME.png" "$AWG_DIR/$CLIENT_NAME.vpnuri"
             rm -f "$KEYS_DIR/${CLIENT_NAME}.private" "$KEYS_DIR/${CLIENT_NAME}.public"
+            remove_client_expiry "$CLIENT_NAME"
             log "Client files deleted."
             log "IMPORTANT: Service restart required: sudo systemctl restart awg-quick@awg0"
         else
@@ -609,6 +757,10 @@ case $COMMAND in
 
     list)
         list_clients
+        ;;
+
+    stats)
+        stats_clients
         ;;
 
     regen)

@@ -8,14 +8,15 @@
 
 <p align="center">
   <strong>Набор Bash-скриптов для быстрой, безопасной и удобной установки,<br>
-  настройки и управления VPN-сервером AmneziaWG 2.0 на Ubuntu (24.04 LTS / 25.10)</strong>
+  настройки и управления VPN-сервером AmneziaWG 2.0 на Ubuntu (24.04 LTS / 25.10) и Debian (12 / 13)</strong>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Ubuntu-24.04_|_25.10-orange" alt="Ubuntu 24.04 | 25.10">
+  <img src="https://img.shields.io/badge/Debian-12_|_13-A81D33" alt="Debian 12 | 13">
   <a href="https://github.com/bivlked/amneziawg-installer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/bivlked/amneziawg-installer" alt="License"></a>
   <img src="https://img.shields.io/badge/Status-Stable-success" alt="Status">
-  <a href="https://github.com/bivlked/amneziawg-installer/releases"><img src="https://img.shields.io/badge/Installer_Version-5.5.1-blue" alt="Version"></a>
+  <a href="https://github.com/bivlked/amneziawg-installer/releases"><img src="https://img.shields.io/badge/Installer_Version-5.6.0-blue" alt="Version"></a>
   <img src="https://img.shields.io/badge/AmneziaWG-2.0-blueviolet" alt="AWG 2.0">
   <a href="https://github.com/bivlked/amneziawg-installer/actions/workflows/shellcheck.yml"><img src="https://github.com/bivlked/amneziawg-installer/actions/workflows/shellcheck.yml/badge.svg" alt="ShellCheck"></a>
   <a href="https://github.com/bivlked/amneziawg-installer/stargazers"><img src="https://img.shields.io/github/stars/bivlked/amneziawg-installer?style=flat" alt="Stars"></a>
@@ -68,6 +69,8 @@
 |----|--------|------------|
 | Ubuntu 24.04 LTS | ✅ Полная поддержка | Рекомендуется |
 | Ubuntu 25.10 | ⚠️ Экспериментально | Может потребоваться сборка модуля из исходников |
+| Debian 12 (bookworm) | ✅ Поддержка | PPA через маппинг codename на focal |
+| Debian 13 (trixie) | ⚠️ Экспериментально | PPA через маппинг codename на noble |
 
 * **Клиент:** [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client/releases) **>= 4.8.12.7** с поддержкой AWG 2.0.
     > ⚠️ **Не путайте** с `amneziawg-windows-client` — это другой проект (standalone tunnel manager), **не поддерживающий** AWG 2.0.
@@ -280,6 +283,7 @@ sudo systemctl restart awg-quick@awg0                        # После add/re
 |--------|----------|
 | [Junker](https://spatiumstas.github.io/junker/) | Веб-генератор подписей AmneziaWG от @spatiumstas — для ручной настройки без установочного скрипта |
 | [Amnezia VPN Client](https://github.com/amnezia-vpn/amnezia-client) | Официальный клиент с поддержкой AWG 2.0 (>= 4.8.12.7) |
+| [AmneziaWG-Architect](https://vadim-khristenko.github.io/AmneziaWG-Architect/) | Веб-генератор CPS/мимикрии для AWG 2.0 от @Vadim-Khristenko ([GitHub](https://github.com/Vadim-Khristenko/AmneziaWG-Architect)) |
 
 ---
 

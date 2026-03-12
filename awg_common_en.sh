@@ -3,8 +3,8 @@
 # ==============================================================================
 # Shared function library for AmneziaWG 2.0
 # Author: @bivlked
-# Version: 5.5.1
-# Date: 2026-03-05
+# Version: 5.6.0
+# Date: 2026-03-12
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 #
@@ -19,7 +19,7 @@ CONFIG_FILE="${CONFIG_FILE:-$AWG_DIR/awgsetup_cfg.init}"
 SERVER_CONF_FILE="${SERVER_CONF_FILE:-/etc/amnezia/amneziawg/awg0.conf}"
 KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
-AWG_COMMON_VERSION="5.5.1"
+AWG_COMMON_VERSION="5.6.0"
 
 # --- Trap for auto-cleanup of temporary files ---
 _AWG_TEMP_FILES=()
@@ -500,6 +500,109 @@ generate_qr() {
     return 0
 }
 
+# Generate vpn:// URI for import into Amnezia Client
+# generate_vpn_uri <name>
+generate_vpn_uri() {
+    local name="$1"
+    local conf_file="$AWG_DIR/${name}.conf"
+    local uri_file="$AWG_DIR/${name}.vpnuri"
+
+    if [[ ! -f "$conf_file" ]]; then
+        log_error "Client config '$name' not found: $conf_file"
+        return 1
+    fi
+
+    if ! command -v perl &>/dev/null; then
+        log_warn "perl not found, vpn:// URI not created for '$name'."
+        return 1
+    fi
+
+    if ! perl -MCompress::Zlib -MMIME::Base64 -e '1' 2>/dev/null; then
+        log_warn "Perl modules Compress::Zlib/MIME::Base64 not found, vpn:// URI not created."
+        return 1
+    fi
+
+    load_awg_params || return 1
+
+    local client_privkey client_ip server_pubkey endpoint
+    client_privkey=$(grep -oP 'PrivateKey\s*=\s*\K\S+' "$conf_file") || return 1
+    client_ip=$(grep -oP 'Address\s*=\s*\K[0-9./]+' "$conf_file") || return 1
+    server_pubkey=$(cat "$AWG_DIR/server_public.key" 2>/dev/null) || return 1
+    endpoint=$(grep -oP 'Endpoint\s*=\s*\K[^:]+' "$conf_file") || return 1
+
+    local vpn_uri perl_err
+    perl_err=$(awg_mktemp) || perl_err="/tmp/awg_perl_err.$$"
+    # shellcheck disable=SC2016
+    vpn_uri=$(perl -MCompress::Zlib -MMIME::Base64 -e '
+        my ($conf_path, $h1,$h2,$h3,$h4, $jc,$jmin,$jmax,
+            $s1,$s2,$s3,$s4, $i1, $port, $ep, $cip, $cpk, $spk) = @ARGV;
+
+        open my $fh, "<", $conf_path or die;
+        local $/; my $raw = <$fh>; close $fh;
+        chomp $raw;
+
+        sub je {
+            my $s = shift;
+            $s =~ s/\\/\\\\/g; $s =~ s/"/\\"/g;
+            $s =~ s/\n/\\n/g;  $s =~ s/\r/\\r/g;
+            $s =~ s/\t/\\t/g;  return $s;
+        }
+
+        my $inner = "{";
+        $inner .= qq("H1":"$h1","H2":"$h2","H3":"$h3","H4":"$h4",);
+        $inner .= qq("Jc":"$jc","Jmin":"$jmin","Jmax":"$jmax",);
+        $inner .= qq("S1":"$s1","S2":"$s2","S3":"$s3","S4":"$s4",);
+        if ($i1 ne "") {
+            my $ei1 = je($i1);
+            $inner .= qq("I1":"$ei1","I2":"","I3":"","I4":"","I5":"",);
+        }
+        my $eraw = je($raw);
+        $inner .= qq("allowed_ips":["0.0.0.0/0"],);
+        $inner .= qq("client_ip":"$cip","client_priv_key":"$cpk",);
+        $inner .= qq("config":"$eraw",);
+        $inner .= qq("hostName":"$ep","mtu":"1280",);
+        $inner .= qq("persistent_keep_alive":"33","port":$port,);
+        $inner .= qq("server_pub_key":"$spk"});
+
+        my $einner = je($inner);
+        my $outer = "{";
+        $outer .= qq("containers":[{"awg":{"isThirdPartyConfig":true,);
+        $outer .= qq("last_config":"$einner",);
+        $outer .= qq("port":"$port","protocol_version":"2",);
+        $outer .= qq("transport_proto":"udp"\},"container":"amnezia-awg"\}],);
+        $outer .= qq("defaultContainer":"amnezia-awg",);
+        $outer .= qq("description":"AWG Server",);
+        $outer .= qq("dns1":"1.1.1.1","dns2":"1.0.0.1",);
+        $outer .= qq("hostName":"$ep"});
+
+        my $compressed = compress($outer);
+        my $payload = pack("N", length($outer)) . $compressed;
+        my $b64 = encode_base64($payload, "");
+        $b64 =~ tr|+/|-_|;
+        $b64 =~ s/=+$//;
+        print "vpn://" . $b64;
+    ' "$conf_file" \
+        "$AWG_H1" "$AWG_H2" "$AWG_H3" "$AWG_H4" \
+        "$AWG_Jc" "$AWG_Jmin" "$AWG_Jmax" \
+        "$AWG_S1" "$AWG_S2" "$AWG_S3" "$AWG_S4" \
+        "$AWG_I1" "$AWG_PORT" "$endpoint" \
+        "$client_ip" "$client_privkey" "$server_pubkey" 2>"$perl_err"
+    )
+
+    if [[ -z "$vpn_uri" ]]; then
+        log_warn "Failed to generate vpn:// URI for '$name'."
+        [[ -s "$perl_err" ]] && log_warn "Perl: $(cat "$perl_err")"
+        rm -f "$perl_err"
+        return 1
+    fi
+    rm -f "$perl_err"
+
+    echo "$vpn_uri" > "$uri_file"
+    chmod 600 "$uri_file"
+    log_debug "vpn:// URI for '$name' created: $uri_file"
+    return 0
+}
+
 # Full client creation cycle:
 # keypair -> next IP -> client config -> add peer -> QR
 # generate_client <name> [endpoint]
@@ -562,6 +665,11 @@ generate_client() {
     # QR code (optional, failure is non-fatal)
     if ! generate_qr "$name"; then
         log_warn "QR code not created. Config: $AWG_DIR/${name}.conf"
+    fi
+
+    # vpn:// URI for Amnezia Client (optional)
+    if ! generate_vpn_uri "$name"; then
+        log_warn "vpn:// URI not created for '$name'."
     fi
 
     log "Client '$name' created (IP: $client_ip)."
@@ -638,6 +746,9 @@ regenerate_client() {
     # QR code
     generate_qr "$name"
 
+    # vpn:// URI for Amnezia Client
+    generate_vpn_uri "$name"
+
     log "Client config for '$name' regenerated."
     return 0
 }
@@ -675,4 +786,155 @@ validate_awg_config() {
     else
         return 1
     fi
+}
+
+# ==============================================================================
+# Client expiry
+# ==============================================================================
+
+EXPIRY_DIR="${AWG_DIR}/expiry"
+EXPIRY_CRON="/etc/cron.d/awg-expiry"
+
+# Parse duration string to seconds: 1h, 12h, 1d, 7d, 30d
+# parse_duration <duration_string>
+parse_duration() {
+    local input="$1"
+    local num unit
+    if [[ "$input" =~ ^([0-9]+)([hdw])$ ]]; then
+        num="${BASH_REMATCH[1]}"
+        unit="${BASH_REMATCH[2]}"
+    else
+        log_error "Invalid duration format: '$input'. Use: 1h, 12h, 1d, 7d, 4w"
+        return 1
+    fi
+    case "$unit" in
+        h) echo $((num * 3600)) ;;
+        d) echo $((num * 86400)) ;;
+        w) echo $((num * 604800)) ;; # 7 days
+        *) return 1 ;;
+    esac
+}
+
+# Set client expiry
+# set_client_expiry <name> <duration>
+set_client_expiry() {
+    local name="$1"
+    local duration="$2"
+    if ! grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+        log_error "Client '$name' not found."
+        return 1
+    fi
+    local seconds
+    seconds=$(parse_duration "$duration") || return 1
+    local now
+    now=$(date +%s)
+    local expires_at=$((now + seconds))
+
+    mkdir -p "$EXPIRY_DIR" || {
+        log_error "Failed to create $EXPIRY_DIR"
+        return 1
+    }
+    echo "$expires_at" > "$EXPIRY_DIR/$name" || {
+        log_error "Failed to write expiry for '$name'"
+        return 1
+    }
+    chmod 600 "$EXPIRY_DIR/$name"
+    local expires_date
+    expires_date=$(date -d "@$expires_at" '+%F %T' 2>/dev/null || echo "$expires_at")
+    log "Expiry for '$name': $expires_date ($duration)"
+    return 0
+}
+
+# Get client expiry (unix timestamp or empty)
+# get_client_expiry <name>
+get_client_expiry() {
+    local name="$1"
+    local efile="$EXPIRY_DIR/$name"
+    if [[ -f "$efile" ]]; then
+        cat "$efile"
+    fi
+}
+
+# Format remaining time
+# format_remaining <expires_at_timestamp>
+format_remaining() {
+    local expires_at="$1"
+    local now
+    now=$(date +%s)
+    local diff=$((expires_at - now))
+    if [[ $diff -le 0 ]]; then
+        local ago=$(( (-diff) / 3600 ))
+        if [[ $ago -ge 24 ]]; then
+            echo "expired $(( ago / 24 ))d ago"
+        else
+            echo "expired ${ago}h ago"
+        fi
+        return 0
+    fi
+    local days=$((diff / 86400))
+    local hours=$(( (diff % 86400) / 3600 ))
+    if [[ $days -gt 0 ]]; then
+        echo "${days}d ${hours}h"
+    else
+        local mins=$(( (diff % 3600) / 60 ))
+        echo "${hours}h ${mins}m"
+    fi
+}
+
+# Check and remove expired clients
+check_expired_clients() {
+    if [[ ! -d "$EXPIRY_DIR" ]]; then return 0; fi
+
+    local removed=0
+    local efile
+    for efile in "$EXPIRY_DIR"/*; do
+        [[ -f "$efile" ]] || continue
+        local name
+        name=$(basename "$efile")
+        local expires_at
+        expires_at=$(cat "$efile" 2>/dev/null)
+        if [[ -z "$expires_at" || ! "$expires_at" =~ ^[0-9]+$ ]]; then
+            continue
+        fi
+
+        local now
+        now=$(date +%s)
+        if [[ $now -ge $expires_at ]]; then
+            log "Client '$name' expired. Removing..."
+            if remove_peer_from_server "$name" 2>/dev/null; then
+                rm -f "$AWG_DIR/$name.conf" "$AWG_DIR/$name.png" "$AWG_DIR/$name.vpnuri"
+                rm -f "$KEYS_DIR/${name}.private" "$KEYS_DIR/${name}.public"
+                rm -f "$efile"
+                log "Client '$name' removed (expired)."
+                ((removed++))
+            else
+                log_warn "Failed to remove expired client '$name'."
+            fi
+        fi
+    done
+
+    if [[ $removed -gt 0 ]]; then
+        log "Expired clients removed: $removed. Restarting service..."
+        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Service restart error."
+    fi
+}
+
+# Install cron job for auto-removal
+install_expiry_cron() {
+    if [[ -f "$EXPIRY_CRON" ]]; then
+        log_debug "Expiry cron job already installed."
+        return 0
+    fi
+    cat > "$EXPIRY_CRON" << 'CRONEOF'
+# AmneziaWG client expiry check — every 5 minutes
+*/5 * * * * root /bin/bash -c 'source /root/awg/awg_common.sh || exit 1; check_expired_clients' >> /root/awg/expiry.log 2>&1
+CRONEOF
+    chmod 644 "$EXPIRY_CRON"
+    log "Expiry cron job installed: $EXPIRY_CRON"
+}
+
+# Remove client expiry data
+remove_client_expiry() {
+    local name="$1"
+    rm -f "$EXPIRY_DIR/$name" 2>/dev/null
 }

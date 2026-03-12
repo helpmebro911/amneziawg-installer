@@ -8,14 +8,15 @@
 
 <p align="center">
   <strong>A set of Bash scripts for one-command installation, secure hardening,<br>
-  and easy management of an AmneziaWG 2.0 VPN server on Ubuntu (24.04 LTS / 25.10)</strong>
+  and easy management of an AmneziaWG 2.0 VPN server on Ubuntu (24.04 LTS / 25.10) and Debian (12 / 13)</strong>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Ubuntu-24.04_|_25.10-orange" alt="Ubuntu 24.04 | 25.10">
+  <img src="https://img.shields.io/badge/Debian-12_|_13-A81D33" alt="Debian 12 | 13">
   <a href="https://github.com/bivlked/amneziawg-installer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/bivlked/amneziawg-installer" alt="License"></a>
   <img src="https://img.shields.io/badge/Status-Stable-success" alt="Status">
-  <a href="https://github.com/bivlked/amneziawg-installer/releases"><img src="https://img.shields.io/badge/Installer_Version-5.5.1-blue" alt="Version"></a>
+  <a href="https://github.com/bivlked/amneziawg-installer/releases"><img src="https://img.shields.io/badge/Installer_Version-5.6.0-blue" alt="Version"></a>
   <img src="https://img.shields.io/badge/AmneziaWG-2.0-blueviolet" alt="AWG 2.0">
   <a href="https://github.com/bivlked/amneziawg-installer/actions/workflows/shellcheck.yml"><img src="https://github.com/bivlked/amneziawg-installer/actions/workflows/shellcheck.yml/badge.svg" alt="ShellCheck"></a>
   <a href="https://github.com/bivlked/amneziawg-installer/stargazers"><img src="https://img.shields.io/github/stars/bivlked/amneziawg-installer?style=flat" alt="Stars"></a>
@@ -68,6 +69,8 @@
 |----|--------|-------|
 | Ubuntu 24.04 LTS | ✅ Fully supported | Recommended |
 | Ubuntu 25.10 | ⚠️ Experimental | May require building the kernel module from source |
+| Debian 12 (bookworm) | ✅ Supported | PPA via codename mapping to focal |
+| Debian 13 (trixie) | ⚠️ Experimental | PPA via codename mapping to noble |
 
 * **Client:** [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client/releases) **>= 4.8.12.7** with AWG 2.0 support.
     > ⚠️ **Do not confuse** with `amneziawg-windows-client` — that is a different project (standalone tunnel manager) that **does not support** AWG 2.0.
@@ -298,6 +301,7 @@ For the changelog, see **[CHANGELOG.en.md](CHANGELOG.en.md)**.
 |---------|-------------|
 | [Junker](https://spatiumstas.github.io/junker/) | AmneziaWG signature generator by @spatiumstas — for manual setup without an installer script |
 | [Amnezia VPN Client](https://github.com/amnezia-vpn/amnezia-client) | Official client with AWG 2.0 support (>= 4.8.12.7) |
+| [AmneziaWG-Architect](https://vadim-khristenko.github.io/AmneziaWG-Architect/) | CPS/mimicry generator UI for AWG 2.0 by @Vadim-Khristenko ([GitHub](https://github.com/Vadim-Khristenko/AmneziaWG-Architect)) |
 
 ---
 

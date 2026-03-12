@@ -6,17 +6,17 @@ if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
 fi
 
 # ==============================================================================
-# Скрипт для установки и настройки AmneziaWG 2.0 на Ubuntu 24.04 LTS Minimal
+# Скрипт для установки и настройки AmneziaWG 2.0 на Ubuntu/Debian серверах
 # Автор: @bivlked
-# Версия: 5.5.1
-# Дата: 2026-03-05
+# Версия: 5.6.0
+# Дата: 2026-03-12
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Безопасный режим и Константы ---
 set -o pipefail
 
-SCRIPT_VERSION="5.5.1"
+SCRIPT_VERSION="5.6.0"
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
 STATE_FILE="$AWG_DIR/setup_state"
@@ -39,7 +39,7 @@ _install_cleanup() {
     local f
     for f in "${_install_temp_files[@]}"; do [[ -f "$f" ]] && rm -f "$f"; done
 }
-trap _install_cleanup EXIT
+trap _install_cleanup EXIT INT TERM
 
 # --- Обработка аргументов ---
 while [[ $# -gt 0 ]]; do
@@ -189,23 +189,52 @@ request_reboot() {
 
 check_os_version() {
     log "Проверка ОС..."
-    if ! command -v lsb_release &>/dev/null; then
-        log_warn "lsb_release не найден."
+
+    # Определение через /etc/os-release (универсально для Ubuntu и Debian)
+    OS_ID=""
+    OS_VERSION=""
+    OS_CODENAME=""
+    if [[ -f /etc/os-release ]]; then
+        # shellcheck source=/dev/null
+        source /etc/os-release
+        OS_ID="$ID"
+        OS_VERSION="$VERSION_ID"
+        OS_CODENAME="$VERSION_CODENAME"
+    elif command -v lsb_release &>/dev/null; then
+        OS_ID=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
+        OS_VERSION=$(lsb_release -sr)
+        OS_CODENAME=$(lsb_release -sc)
+    else
+        log_warn "Не удалось определить ОС (/etc/os-release и lsb_release не найдены)."
         return 0
     fi
-    local os_id os_ver
-    os_id=$(lsb_release -si)
-    os_ver=$(lsb_release -sr)
-    if [[ "$os_id" != "Ubuntu" || "$os_ver" != "24.04" ]]; then
-        log_warn "Обнаружена $os_id $os_ver. Скрипт разработан для Ubuntu 24.04 LTS."
+    export OS_ID OS_VERSION OS_CODENAME
+
+    # Поддерживаемые ОС
+    local supported=0
+    case "$OS_ID" in
+        ubuntu)
+            if [[ "$OS_VERSION" == "24.04" || "$OS_VERSION" == "25.10" ]]; then
+                supported=1
+            fi
+            ;;
+        debian)
+            if [[ "$OS_VERSION" == "12" || "$OS_VERSION" == "13" ]]; then
+                supported=1
+            fi
+            ;;
+    esac
+
+    if [[ "$supported" -eq 1 ]]; then
+        log "ОС: ${OS_ID^} $OS_VERSION ($OS_CODENAME) — поддерживается"
+    else
+        log_warn "Обнаружена $OS_ID $OS_VERSION ($OS_CODENAME). Скрипт протестирован на Ubuntu 24.04/25.10 и Debian 12/13."
         if [[ "$AUTO_YES" -eq 0 ]]; then
             read -rp "Продолжить? [y/N]: " confirm < /dev/tty
             if ! [[ "$confirm" =~ ^[Yy]$ ]]; then die "Отмена."; fi
         else
-            log "Продолжаем на $os_id $os_ver (--yes)."
+            log "Продолжаем на $OS_ID $OS_VERSION (--yes)."
         fi
-    else
-        log "ОС: Ubuntu $os_ver (OK)"
     fi
 }
 
@@ -416,9 +445,14 @@ cleanup_system() {
     log "Очистка системы от ненужных компонентов..."
 
     # Пакеты для удаления (безопасные для VPS)
+    # snapd и lxd-agent-loader — только на Ubuntu, на Debian их нет
     local packages_to_remove=()
     local pkg
-    for pkg in snapd modemmanager networkd-dispatcher unattended-upgrades packagekit lxd-agent-loader udisks2; do
+    local cleanup_list="modemmanager networkd-dispatcher unattended-upgrades packagekit udisks2"
+    if [[ "${OS_ID:-ubuntu}" == "ubuntu" ]]; then
+        cleanup_list="snapd $cleanup_list lxd-agent-loader"
+    fi
+    for pkg in $cleanup_list; do
         if dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "ok installed"; then
             packages_to_remove+=("$pkg")
         fi
@@ -429,8 +463,8 @@ cleanup_system() {
         DEBIAN_FRONTEND=noninteractive apt-get purge -y "${packages_to_remove[@]}" || log_warn "Ошибка удаления некоторых пакетов"
     fi
 
-    # Очистка snap артефактов
-    if [[ -d /snap ]]; then
+    # Очистка snap артефактов (только Ubuntu)
+    if [[ "${OS_ID:-ubuntu}" == "ubuntu" && -d /snap ]]; then
         log "Очистка snap артефактов..."
         rm -rf /snap /var/snap /var/lib/snapd 2>/dev/null || log_warn "Ошибка очистки snap"
     fi
@@ -904,7 +938,7 @@ step_uninstall() {
     rm -rf /etc/fail2ban/ 2>/dev/null || true
     rm -f /etc/apt/sources.list.d/*.bak-* 2>/dev/null || true
     log "Удаление cron и скриптов..."
-    rm -f /etc/cron.d/*amneziawg* /usr/local/bin/*amneziawg*.sh 2>/dev/null
+    rm -f /etc/cron.d/*amneziawg* /etc/cron.d/awg-expiry /usr/local/bin/*amneziawg*.sh 2>/dev/null
     log "=== ДЕИНСТАЛЛЯЦИЯ ЗАВЕРШЕНА ==="
     # Копируем лог и удаляем рабочую директорию
     cp "$LOG_FILE" "$HOME/awg_uninstall.log" 2>/dev/null || true
@@ -1018,9 +1052,13 @@ initialize_setup() {
     log "Сохранение настроек в $CONFIG_FILE..."
     local temp_conf
     temp_conf=$(mktemp) || die "Ошибка mktemp."
+    _install_temp_files+=("$temp_conf")
     cat > "$temp_conf" << EOF
 # Конфигурация установки AmneziaWG 2.0 (Авто-генерация)
 # Используется скриптами установки и управления
+export OS_ID='${OS_ID:-ubuntu}'
+export OS_VERSION='${OS_VERSION:-}'
+export OS_CODENAME='${OS_CODENAME:-}'
 export AWG_PORT=${AWG_PORT}
 export AWG_TUNNEL_SUBNET='${AWG_TUNNEL_SUBNET}'
 export DISABLE_IPV6=${DISABLE_IPV6}
@@ -1115,46 +1153,71 @@ step2_install_amnezia() {
     update_state 2
     log "### ШАГ 2: Установка AmneziaWG и зависимостей ###"
 
+    # Включение deb-src (только Ubuntu — Ubuntu использует ubuntu.sources)
     local sources_file="/etc/apt/sources.list.d/ubuntu.sources"
-
-    # Включение deb-src
-    log "Проверка/включение deb-src..."
-    if [[ -f "$sources_file" ]]; then
-        if grep -q "^Types: deb$" "$sources_file"; then
-            log "Включение deb-src..."
-            local bak
-            bak="${sources_file}.bak-$(date +%F_%T)"
-            cp "$sources_file" "$bak" || log_warn "Ошибка бэкапа"
-            local tmp_sed
-            tmp_sed=$(mktemp)
-            sed '/^Types: deb$/s/Types: deb/Types: deb deb-src/' "$sources_file" > "$tmp_sed" || {
-                rm -f "$tmp_sed"; die "Ошибка sed."
-            }
-            if ! mv "$tmp_sed" "$sources_file"; then
-                rm -f "$tmp_sed"; die "Ошибка mv $sources_file"
+    if [[ "${OS_ID:-ubuntu}" == "ubuntu" ]]; then
+        log "Проверка/включение deb-src..."
+        if [[ -f "$sources_file" ]]; then
+            if grep -q "^Types: deb$" "$sources_file"; then
+                log "Включение deb-src..."
+                local bak
+                bak="${sources_file}.bak-$(date +%F_%T)"
+                cp "$sources_file" "$bak" || log_warn "Ошибка бэкапа"
+                local tmp_sed
+                tmp_sed=$(mktemp)
+                _install_temp_files+=("$tmp_sed")
+                sed '/^Types: deb$/s/Types: deb/Types: deb deb-src/' "$sources_file" > "$tmp_sed" || {
+                    rm -f "$tmp_sed"; die "Ошибка sed."
+                }
+                if ! mv "$tmp_sed" "$sources_file"; then
+                    rm -f "$tmp_sed"; die "Ошибка mv $sources_file"
+                fi
+                apt update -y || die "Ошибка apt update."
+            else
+                apt update -y
             fi
-            apt update -y || die "Ошибка apt update."
         else
+            log_warn "$sources_file не найден, пропуск deb-src."
             apt update -y
         fi
     else
-        log_warn "$sources_file не найден, пропуск deb-src."
+        # Debian: deb-src обычно уже настроен или не нужен для нашей задачи
+        log "Debian: пропуск настройки deb-src."
         apt update -y
     fi
 
     # PPA Amnezia (без software-properties-common)
     log "Добавление PPA Amnezia..."
-    local codename
-    codename=$(lsb_release -sc 2>/dev/null || echo "noble")
+
+    # Определение codename для PPA
+    # На Debian маппим на ближайший Ubuntu codename, т.к. PPA — это Launchpad (Ubuntu)
+    # Debian 12 (bookworm) → focal, Debian 13 (trixie) → noble
+    local codename ppa_codename
+    codename="${OS_CODENAME:-$(lsb_release -sc 2>/dev/null || echo "noble")}"
+    case "${OS_ID:-ubuntu}" in
+        debian)
+            case "$codename" in
+                bookworm) ppa_codename="focal" ;;
+                trixie)   ppa_codename="noble" ;;
+                *)        ppa_codename="noble" ;;
+            esac
+            log "Debian ($codename) → PPA codename: $ppa_codename"
+            ;;
+        *)
+            ppa_codename="$codename"
+            ;;
+    esac
+
     local keyring_dir="/etc/apt/keyrings"
     local keyring_file="${keyring_dir}/amnezia-ppa.gpg"
     local ppa_sources="/etc/apt/sources.list.d/amnezia-ppa.sources"
+    local ppa_list="/etc/apt/sources.list.d/amnezia-ppa.list"
     # Проверка на legacy-файлы (от add-apt-repository предыдущих версий)
     local legacy_list="/etc/apt/sources.list.d/amnezia-ubuntu-ppa-${codename}.list"
     local legacy_sources="/etc/apt/sources.list.d/amnezia-ubuntu-ppa-${codename}.sources"
     if [[ -f "$legacy_list" ]] || [[ -f "$legacy_sources" ]]; then
         log "PPA уже добавлен (legacy-формат)."
-    elif [[ -f "$ppa_sources" ]]; then
+    elif [[ -f "$ppa_sources" ]] || [[ -f "$ppa_list" ]]; then
         log "PPA уже добавлен."
     else
         mkdir -p "$keyring_dir"
@@ -1163,14 +1226,23 @@ step2_install_amnezia() {
             | gpg --dearmor -o "$keyring_file" \
             || die "Ошибка импорта GPG ключа Amnezia PPA."
         chmod 644 "$keyring_file"
-        cat > "$ppa_sources" <<PPASRC || die "Ошибка создания sources PPA."
+
+        # Debian 12 использует traditional .list формат, Debian 13+ и Ubuntu 24.04+ — DEB822 .sources
+        if [[ "${OS_ID:-ubuntu}" == "debian" && "${OS_VERSION}" == "12" ]]; then
+            log "Debian 12: используем традиционный формат .list"
+            echo "deb [signed-by=${keyring_file}] https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu ${ppa_codename} main" \
+                > "$ppa_list" || die "Ошибка создания $ppa_list"
+            chmod 644 "$ppa_list"
+        else
+            cat > "$ppa_sources" <<PPASRC || die "Ошибка создания sources PPA."
 Types: deb
 URIs: https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu
-Suites: ${codename}
+Suites: ${ppa_codename}
 Components: main
 Signed-By: ${keyring_file}
 PPASRC
-        chmod 644 "$ppa_sources"
+            chmod 644 "$ppa_sources"
+        fi
         log "PPA добавлен."
     fi
     apt update -y || die "Ошибка apt update."
@@ -1178,10 +1250,23 @@ PPASRC
     # Пакеты AmneziaWG + qrencode (БЕЗ Python!)
     log "Установка пакетов AmneziaWG..."
     local packages=("amneziawg-dkms" "amneziawg-tools" "wireguard-tools" "dkms"
-                    "linux-headers-$(uname -r)" "build-essential" "dpkg-dev" "qrencode")
-    if ! dpkg -s "linux-headers-$(uname -r)" &>/dev/null; then
-        log_warn "Нет headers для $(uname -r)..."
-        packages+=("linux-headers-generic")
+                    "build-essential" "dpkg-dev" "qrencode")
+
+    # Linux headers: на Debian может не быть точного linux-headers-$(uname -r)
+    local current_headers
+    current_headers="linux-headers-$(uname -r)"
+    if dpkg -s "$current_headers" &>/dev/null || apt-cache show "$current_headers" &>/dev/null 2>&1; then
+        packages+=("$current_headers")
+    else
+        log_warn "Нет headers для $(uname -r), установка общего пакета..."
+        if [[ "${OS_ID:-ubuntu}" == "debian" ]]; then
+            # На Debian: linux-headers-amd64 (или linux-headers-$(dpkg --print-architecture))
+            local arch_pkg
+            arch_pkg="linux-headers-$(dpkg --print-architecture 2>/dev/null || echo "amd64")"
+            packages+=("$arch_pkg")
+        else
+            packages+=("linux-headers-generic")
+        fi
     fi
     install_packages "${packages[@]}"
 
@@ -1373,7 +1458,12 @@ step7_start_service() {
     log "Сервис включен и запущен."
 
     log "Проверка статуса сервиса..."
-    sleep 3
+    local _attempt
+    for _attempt in 1 2 3 4 5; do
+        sleep 1
+        check_service_status 2>/dev/null && break
+        [[ $_attempt -lt 5 ]] && log_debug "Ожидание запуска сервиса... (попытка $_attempt/5)"
+    done
     check_service_status || die "Проверка статуса сервиса не пройдена."
 
     # Fail2Ban
