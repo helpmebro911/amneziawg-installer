@@ -8,13 +8,13 @@ fi
 # ==============================================================================
 # Скрипт для управления пользователями (пирами) AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.6.0
-# Дата: 2026-03-12
+# Версия: 5.7.0
+# Дата: 2026-03-13
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Безопасный режим и Константы ---
-SCRIPT_VERSION="5.6.0"
+SCRIPT_VERSION="5.7.0"
 set -o pipefail
 AWG_DIR="/root/awg"
 SERVER_CONF_FILE="/etc/amnezia/amneziawg/awg0.conf"
@@ -665,7 +665,7 @@ stats_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "Скрипт управления AmneziaWG 2.0 (v5.6.0)"
+    echo "Скрипт управления AmneziaWG 2.0 (v5.7.0)"
     echo "=============================================="
     echo "Использование: $0 [ОПЦИИ] <КОМАНДА> [АРГУМЕНТЫ]"
     echo ""
@@ -691,9 +691,6 @@ usage() {
     echo "  show                  Показать статус \`awg show\`"
     echo "  restart               Перезапустить сервис AmneziaWG"
     echo "  help                  Показать эту справку"
-    echo ""
-    echo "ВАЖНО: После 'add', 'remove' перезапустите сервис:"
-    echo "  sudo systemctl restart awg-quick@awg0 (или $0 restart)"
     echo ""
     exit 1
 }
@@ -731,7 +728,7 @@ case $COMMAND in
                     install_expiry_cron
                 fi
             fi
-            log "ВАЖНО: Требуется перезапуск сервиса: sudo systemctl restart awg-quick@awg0"
+            apply_config
         else
             log_error "Ошибка добавления клиента '$CLIENT_NAME'."
         fi
@@ -751,7 +748,7 @@ case $COMMAND in
             rm -f "$KEYS_DIR/${CLIENT_NAME}.private" "$KEYS_DIR/${CLIENT_NAME}.public"
             remove_client_expiry "$CLIENT_NAME"
             log "Файлы клиента удалены."
-            log "ВАЖНО: Требуется перезапуск сервиса: sudo systemctl restart awg-quick@awg0"
+            apply_config
         else
             log_error "Ошибка удаления клиента '$CLIENT_NAME'."
         fi

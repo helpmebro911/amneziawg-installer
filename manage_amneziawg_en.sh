@@ -8,13 +8,13 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 peer management script
 # Author: @bivlked
-# Version: 5.6.0
-# Date: 2026-03-12
+# Version: 5.7.0
+# Date: 2026-03-13
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Safe mode and Constants ---
-SCRIPT_VERSION="5.6.0"
+SCRIPT_VERSION="5.7.0"
 set -o pipefail
 AWG_DIR="/root/awg"
 SERVER_CONF_FILE="/etc/amnezia/amneziawg/awg0.conf"
@@ -665,7 +665,7 @@ stats_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "AmneziaWG 2.0 management script (v5.6.0)"
+    echo "AmneziaWG 2.0 management script (v5.7.0)"
     echo "=============================================="
     echo "Usage: $0 [OPTIONS] <COMMAND> [ARGUMENTS]"
     echo ""
@@ -691,9 +691,6 @@ usage() {
     echo "  show                  Show \`awg show\` status"
     echo "  restart               Restart AmneziaWG service"
     echo "  help                  Show this help"
-    echo ""
-    echo "IMPORTANT: After 'add', 'remove' restart the service:"
-    echo "  sudo systemctl restart awg-quick@awg0 (or $0 restart)"
     echo ""
     exit 1
 }
@@ -731,7 +728,7 @@ case $COMMAND in
                     install_expiry_cron
                 fi
             fi
-            log "IMPORTANT: Service restart required: sudo systemctl restart awg-quick@awg0"
+            apply_config
         else
             log_error "Error adding client '$CLIENT_NAME'."
         fi
@@ -751,7 +748,7 @@ case $COMMAND in
             rm -f "$KEYS_DIR/${CLIENT_NAME}.private" "$KEYS_DIR/${CLIENT_NAME}.public"
             remove_client_expiry "$CLIENT_NAME"
             log "Client files deleted."
-            log "IMPORTANT: Service restart required: sudo systemctl restart awg-quick@awg0"
+            apply_config
         else
             log_error "Error removing client '$CLIENT_NAME'."
         fi

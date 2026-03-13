@@ -3,8 +3,8 @@
 # ==============================================================================
 # Общая библиотека функций для AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.6.0
-# Дата: 2026-03-12
+# Версия: 5.7.0
+# Дата: 2026-03-13
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 #
@@ -19,7 +19,7 @@ CONFIG_FILE="${CONFIG_FILE:-$AWG_DIR/awgsetup_cfg.init}"
 SERVER_CONF_FILE="${SERVER_CONF_FILE:-/etc/amnezia/amneziawg/awg0.conf}"
 KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
-AWG_COMMON_VERSION="5.6.0"
+AWG_COMMON_VERSION="5.7.0"
 
 # --- Trap для автоочистки временных файлов ---
 _AWG_TEMP_FILES=()
@@ -325,6 +325,28 @@ EOF
     chmod 600 "$conf_file"
     log_debug "Конфиг для '$name' создан: $conf_file"
     return 0
+}
+
+# ==============================================================================
+# Применение конфигурации (syncconf)
+# ==============================================================================
+
+# Применение изменений конфигурации без разрыва туннеля
+# Использует awg syncconf для zero-downtime обновления пиров
+# Fallback на полный перезапуск при ошибке
+apply_config() {
+    local strip_out
+    strip_out=$(awg-quick strip awg0 2>/dev/null) || {
+        log_warn "awg-quick strip не удался, использую полный перезапуск."
+        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Ошибка перезапуска."
+        return $?
+    }
+    echo "$strip_out" | awg syncconf awg0 /dev/stdin 2>/dev/null || {
+        log_warn "awg syncconf не удался, использую полный перезапуск."
+        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Ошибка перезапуска."
+        return $?
+    }
+    log_debug "Конфигурация применена (syncconf)."
 }
 
 # ==============================================================================
@@ -914,8 +936,8 @@ check_expired_clients() {
     done
 
     if [[ $removed -gt 0 ]]; then
-        log "Удалено истёкших клиентов: $removed. Перезапуск сервиса..."
-        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Ошибка перезапуска сервиса."
+        log "Удалено истёкших клиентов: $removed. Применение конфигурации..."
+        apply_config
     fi
 }
 

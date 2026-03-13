@@ -3,8 +3,8 @@
 # ==============================================================================
 # Shared function library for AmneziaWG 2.0
 # Author: @bivlked
-# Version: 5.6.0
-# Date: 2026-03-12
+# Version: 5.7.0
+# Date: 2026-03-13
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 #
@@ -19,7 +19,7 @@ CONFIG_FILE="${CONFIG_FILE:-$AWG_DIR/awgsetup_cfg.init}"
 SERVER_CONF_FILE="${SERVER_CONF_FILE:-/etc/amnezia/amneziawg/awg0.conf}"
 KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
-AWG_COMMON_VERSION="5.6.0"
+AWG_COMMON_VERSION="5.7.0"
 
 # --- Trap for auto-cleanup of temporary files ---
 _AWG_TEMP_FILES=()
@@ -325,6 +325,28 @@ EOF
     chmod 600 "$conf_file"
     log_debug "Config for '$name' created: $conf_file"
     return 0
+}
+
+# ==============================================================================
+# Config application (syncconf)
+# ==============================================================================
+
+# Apply config changes without disrupting the tunnel
+# Uses awg syncconf for zero-downtime peer updates
+# Falls back to full restart on error
+apply_config() {
+    local strip_out
+    strip_out=$(awg-quick strip awg0 2>/dev/null) || {
+        log_warn "awg-quick strip failed, falling back to full restart."
+        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Service restart error."
+        return $?
+    }
+    echo "$strip_out" | awg syncconf awg0 /dev/stdin 2>/dev/null || {
+        log_warn "awg syncconf failed, falling back to full restart."
+        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Service restart error."
+        return $?
+    }
+    log_debug "Config applied (syncconf)."
 }
 
 # ==============================================================================
@@ -914,8 +936,8 @@ check_expired_clients() {
     done
 
     if [[ $removed -gt 0 ]]; then
-        log "Expired clients removed: $removed. Restarting service..."
-        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Service restart error."
+        log "Expired clients removed: $removed. Applying config..."
+        apply_config
     fi
 }
 
