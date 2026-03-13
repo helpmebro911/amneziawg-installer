@@ -3,6 +3,20 @@ description: Suggest a new feature or enhancement
 labels: [enhancement]
 
 body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Client management
+        - Installation
+        - Security
+        - Performance
+        - Documentation
+        - Other
+    validations:
+      required: false
+
   - type: textarea
     id: problem-motivation
     attributes:

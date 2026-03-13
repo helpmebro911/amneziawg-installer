@@ -15,7 +15,8 @@
 - [ ] `bash -n` passes for all modified scripts
 - [ ] `shellcheck -s bash -S warning` passes
 - [ ] Tested on clean Ubuntu 24.04 VPS (if script changes)
-- [ ] CHANGELOG.md updated
+- [ ] Tested on Debian 12/13 (if OS-specific changes)
+- [ ] CHANGELOG.md **and** CHANGELOG.en.md updated
+- [ ] SCRIPT_VERSION updated (if releasing new version)
 - [ ] Documentation updated (if applicable)
 - [ ] English script versions (`_en.sh`) synchronized (if Russian scripts modified)
-- [ ] Tested on Debian 12/13 (if OS-specific changes)
