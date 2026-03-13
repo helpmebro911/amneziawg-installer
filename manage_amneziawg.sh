@@ -743,6 +743,7 @@ case $COMMAND in
 
     remove)
         [[ -z "$CLIENT_NAME" ]] && die "Не указано имя клиента."
+        validate_client_name "$CLIENT_NAME" || exit 1
         if ! grep -q "^#_Name = ${CLIENT_NAME}$" "$SERVER_CONF_FILE"; then
             die "Клиент '$CLIENT_NAME' не найден."
         fi
@@ -796,6 +797,8 @@ case $COMMAND in
         ;;
 
     modify)
+        [[ -z "$CLIENT_NAME" ]] && die "Не указано имя клиента."
+        validate_client_name "$CLIENT_NAME" || exit 1
         modify_client "$CLIENT_NAME" "$PARAM" "$VALUE"
         ;;
 
