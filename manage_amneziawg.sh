@@ -27,6 +27,12 @@ VERBOSE_LIST=0
 JSON_OUTPUT=0
 EXPIRES_DURATION=""
 
+# --- Автоочистка временных файлов ---
+_manage_cleanup() {
+    type _awg_cleanup &>/dev/null && _awg_cleanup
+}
+trap _manage_cleanup EXIT INT TERM
+
 # --- Обработка аргументов ---
 COMMAND=""
 ARGS=()

@@ -21,7 +21,9 @@ KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
 AWG_COMMON_VERSION="5.7.0"
 
-# --- Trap для автоочистки временных файлов ---
+# --- Автоочистка временных файлов ---
+# ВАЖНО: trap НЕ устанавливается здесь, чтобы не перезаписать trap вызывающего скрипта.
+# Вызывающий скрипт должен вызвать _awg_cleanup() в своём обработчике EXIT.
 _AWG_TEMP_FILES=()
 
 _awg_cleanup() {
@@ -30,7 +32,6 @@ _awg_cleanup() {
         [[ -f "$f" ]] && rm -f "$f"
     done
 }
-trap _awg_cleanup EXIT
 
 # Обёртка mktemp с автоочисткой
 awg_mktemp() {

@@ -21,7 +21,9 @@ KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
 AWG_COMMON_VERSION="5.7.0"
 
-# --- Trap for auto-cleanup of temporary files ---
+# --- Auto-cleanup of temporary files ---
+# NOTE: trap is NOT set here to avoid overwriting the caller's trap handler.
+# The calling script must invoke _awg_cleanup() in its own EXIT handler.
 _AWG_TEMP_FILES=()
 
 _awg_cleanup() {
@@ -30,7 +32,6 @@ _awg_cleanup() {
         [[ -f "$f" ]] && rm -f "$f"
     done
 }
-trap _awg_cleanup EXIT
 
 # mktemp wrapper with auto-cleanup
 awg_mktemp() {

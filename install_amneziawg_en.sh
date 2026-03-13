@@ -38,6 +38,8 @@ _install_temp_files=()
 _install_cleanup() {
     local f
     for f in "${_install_temp_files[@]}"; do [[ -f "$f" ]] && rm -f "$f"; done
+    # Clean up temporary files from awg_common.sh (if already sourced)
+    type _awg_cleanup &>/dev/null && _awg_cleanup
 }
 trap _install_cleanup EXIT INT TERM
 

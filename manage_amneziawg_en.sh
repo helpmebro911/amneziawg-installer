@@ -27,6 +27,12 @@ VERBOSE_LIST=0
 JSON_OUTPUT=0
 EXPIRES_DURATION=""
 
+# --- Auto-cleanup of temporary files ---
+_manage_cleanup() {
+    type _awg_cleanup &>/dev/null && _awg_cleanup
+}
+trap _manage_cleanup EXIT INT TERM
+
 # --- Argument handling ---
 COMMAND=""
 ARGS=()
