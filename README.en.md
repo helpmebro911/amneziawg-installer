@@ -190,8 +190,8 @@ sudo bash /root/awg/manage_amneziawg.sh <command> [arguments]
 
 | Command   | Arguments              | Description                    | Restart? |
 | :-------- | :--------------------- | :----------------------------- | :------: |
-| `add`     | `<name> [--expires=DUR]`  | Add a client (opt. with expiry) | **Yes** |
-| `remove`  | `<client_name>`        | Remove a client                |   **Yes** |
+| `add`     | `<name> [--expires=DUR]`  | Add a client (opt. with expiry) | No (auto) |
+| `remove`  | `<client_name>`        | Remove a client                | No (auto) |
 | `list`    | `[-v]`                 | List clients (`-v` for details)|    No     |
 | `regen`   | `[client_name]`        | Regenerate files (all/one)     |    No     |
 | `modify`  | `<name> <param> <val>` | Modify a client parameter      |    No     |
@@ -202,7 +202,7 @@ sudo bash /root/awg/manage_amneziawg.sh <command> [arguments]
 | `check`   |                        | Check server status            |    No     |
 | `restart` |                        | Restart AmneziaWG service      |    -      |
 
-> **❗️ IMPORTANT:** After `add` or `remove`, **restart the service**: `sudo systemctl restart awg-quick@awg0` (or use the `restart` command).
+> **💡 Note:** `add` and `remove` commands auto-apply changes via `awg syncconf` — no service restart needed.
 
 **Getting client files:** The `.conf` and `.png` files are located in `/root/awg/`. Use `scp`, `sftp`, or any other secure method to copy them.
 
@@ -234,7 +234,6 @@ sudo bash /root/awg/manage_amneziawg.sh stats --json
 sudo bash /root/awg/manage_amneziawg.sh check               # Diagnostics
 sudo bash /root/awg/manage_amneziawg.sh backup               # Backup
 sudo bash /root/awg/manage_amneziawg.sh restart              # Restart
-sudo systemctl restart awg-quick@awg0                        # After add/remove
 ```
 
 ---
