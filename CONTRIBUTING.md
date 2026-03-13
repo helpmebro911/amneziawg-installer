@@ -1,5 +1,7 @@
 # Contributing to amneziawg-installer
 
+Please note that this project has a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to abide by its terms.
+
 Thank you for your interest in contributing! This guide covers the process and conventions for submitting changes.
 
 ## How to Contribute
