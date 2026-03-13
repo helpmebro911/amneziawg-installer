@@ -8,14 +8,14 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 peer management script
 # Author: @bivlked
-# Version: 5.7.0
+# Version: 5.7.1
 # Date: 2026-03-13
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Safe mode and Constants ---
 # shellcheck disable=SC2034
-SCRIPT_VERSION="5.7.0"
+SCRIPT_VERSION="5.7.1"
 set -o pipefail
 AWG_DIR="/root/awg"
 SERVER_CONF_FILE="/etc/amnezia/amneziawg/awg0.conf"
@@ -672,7 +672,7 @@ stats_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "AmneziaWG 2.0 management script (v5.7.0)"
+    echo "AmneziaWG 2.0 management script (v5.7.1)"
     echo "=============================================="
     echo "Usage: $0 [OPTIONS] <COMMAND> [ARGUMENTS]"
     echo ""

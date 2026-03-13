@@ -8,7 +8,7 @@ fi
 # ==============================================================================
 # Скрипт для установки и настройки AmneziaWG 2.0 на Ubuntu/Debian серверах
 # Автор: @bivlked
-# Версия: 5.7.0
+# Версия: 5.7.1
 # Дата: 2026-03-13
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -16,7 +16,7 @@ fi
 # --- Безопасный режим и Константы ---
 set -o pipefail
 
-SCRIPT_VERSION="5.7.0"
+SCRIPT_VERSION="5.7.1"
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
 STATE_FILE="$AWG_DIR/setup_state"

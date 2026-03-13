@@ -10,6 +10,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.7.1] — 2026-03-13
+
+### Fixed
+
+- **vpn:// URI AllowedIPs:** `generate_vpn_uri()` was hardcoding `0.0.0.0/0` instead of using actual AllowedIPs from client config — split-tunnel configurations are now correctly passed to the URI.
+- **Fail2Ban jail.d:** Installation now writes to `/etc/fail2ban/jail.d/amneziawg.conf` instead of overwriting `jail.local` — user Fail2Ban customizations are preserved.
+- **Fail2Ban uninstall:** Uninstall now removes only its own artifacts instead of `rm -rf /etc/fail2ban/`.
+- **validate_client_name:** Client name validation added to `remove` and `modify` commands — previously only worked for `add` and `regen`.
+- **exit code:** Management script now returns proper error codes instead of unconditional `exit 0`.
+- **expiry cron path:** Expiry cron job uses `$AWG_DIR` instead of hardcoded `/root/awg/`.
+
+### Removed
+
+- **rand_range():** Removed unused function from `awg_common.sh` (installer defines its own copy).
+
+---
+
 ## [5.7.0] — 2026-03-13
 
 ### Added
