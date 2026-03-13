@@ -13,3 +13,14 @@ Desktop.ini
 # Temp
 *.tmp
 *.bak
+
+# Logs
+*.log
+
+# Runtime
+*.lock
+*.pid
+
+# Secrets
+.env
+.env.*
