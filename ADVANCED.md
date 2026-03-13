@@ -35,6 +35,10 @@
 - [🩺 Диагностика и деинсталляция](#diag-uninstall-adv)
   - [Содержимое диагностического отчёта](#diagnostic-report-adv)
 - [🔧 Устранение неполадок (подробно)](#troubleshooting-adv)
+- [📊 Статистика трафика (stats)](#stats-adv)
+- [⏳ Временные клиенты (--expires)](#expires-adv)
+- [📱 vpn:// URI импорт](#vpnuri-adv)
+- [🐧 Поддержка Debian](#debian-support-adv)
 - [🤝 Внесение вклада (Contributing)](#contributing-adv)
 - [💖 Благодарности](#thanks-adv)
 
@@ -271,7 +275,7 @@ PersistentKeepalive = 33
 ## 🖥️ CLI Параметры запуска скриптов
 
 <a id="install-cli-adv"></a>
-### install_amneziawg.sh (v5.5.1)
+### install_amneziawg.sh (v5.6.0)
 
 ```
 Опции:
@@ -292,7 +296,7 @@ PersistentKeepalive = 33
 ```
 
 <a id="manage-cli-adv"></a>
-### manage_amneziawg.sh (v5.5.1)
+### manage_amneziawg.sh (v5.6.0)
 
 ```
 Опции:
@@ -301,6 +305,8 @@ PersistentKeepalive = 33
   --no-color            Отключить цветной вывод
   --conf-dir=ПУТЬ       Указать директорию AWG (умолч: /root/awg)
   --server-conf=ПУТЬ    Указать файл конфига сервера
+  --json                JSON-вывод (для команды stats)
+  --expires=ВРЕМЯ       Срок действия при add (1h, 12h, 1d, 7d, 30d, 4w)
 ```
 
 ---
@@ -310,7 +316,7 @@ PersistentKeepalive = 33
 
 Используйте `sudo bash /root/awg/manage_amneziawg.sh <команда>`:
 
-* **`add <имя>`:** Добавить клиента (генерация ключей, конфиг, QR-код, добавление пира).
+* **`add <имя> [--expires=ВРЕМЯ]`:** Добавить клиента (генерация ключей, конфиг, QR-код, vpn:// URI, добавление пира). С `--expires` — клиент с ограниченным сроком.
 * **`remove <имя>`:** Удалить клиента (конфиг, ключи, запись в серверном конфиге).
 * **`list [-v]`:** Список клиентов (с деталями при `-v`).
 * **`regen [имя]`:** Перегенерировать файлы `.conf`/`.png` для клиента или всех клиентов.
@@ -321,6 +327,7 @@ PersistentKeepalive = 33
 * **`show`:** Выполнить `awg show`.
 * **`restart`:** Перезапустить сервис AmneziaWG.
 * **`help`:** Показать справку.
+* **`stats [--json]`:** Статистика трафика по клиентам. С `--json` — машиночитаемый формат для интеграции.
 
 ### Примеры использования
 
@@ -350,12 +357,12 @@ sudo bash /root/awg/manage_amneziawg.sh restore
 ## 🛠️ Технические детали
 
 <a id="architecture-adv"></a>
-### Архитектура скриптов (v5.5.1)
+### Архитектура скриптов (v5.6.0)
 
 | Файл | Назначение |
 |------|-----------|
 | `install_amneziawg.sh` | Установщик: state machine из 8 шагов с поддержкой resume |
-| `manage_amneziawg.sh` | Управление: add/remove/list/regen/backup/restore |
+| `manage_amneziawg.sh` | Управление: add/remove/list/regen/stats/backup/restore |
 | `awg_common.sh` | Общая библиотека: ключи, конфиги, QR, peer management |
 | `install_amneziawg_en.sh` | Установщик (English версия) |
 | `manage_amneziawg_en.sh` | Управление (English версия) |
@@ -387,6 +394,7 @@ graph TD
         M3[modify / regen]
         M4[backup / restore]
         M5[restart]
+        M6[stats / stats --json]
     end
 ```
 
@@ -550,6 +558,127 @@ chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
 2. Измените порт AmneziaWG или остановите конфликтующий сервис
 3. Для смены порта см. FAQ "Как изменить порт"
 </details>
+
+---
+
+<a id="stats-adv"></a>
+## 📊 Статистика трафика (stats)
+
+Команда `stats` показывает статистику трафика для каждого клиента.
+
+**Обычный вывод:**
+
+```bash
+sudo bash /root/awg/manage_amneziawg.sh stats
+```
+
+```
+Клиент          Получено        Отправлено      Последний handshake
+───────────────────────────────────────────────────────────────────
+my_phone        1.24 GiB        356.7 MiB       2 minutes ago
+laptop          892.3 MiB       128.4 MiB       15 seconds ago
+guest           0 B             0 B             (none)
+```
+
+**JSON-вывод:**
+
+```bash
+sudo bash /root/awg/manage_amneziawg.sh stats --json
+```
+
+```json
+[
+  {
+    "name": "my_phone",
+    "public_key": "abc123...",
+    "received_bytes": 1332477952,
+    "sent_bytes": 374083174,
+    "latest_handshake": 1710312180
+  }
+]
+```
+
+---
+
+<a id="expires-adv"></a>
+## ⏳ Временные клиенты (--expires)
+
+Создание клиентов с автоматическим удалением по истечении срока.
+
+**Создание:**
+
+```bash
+sudo bash /root/awg/manage_amneziawg.sh add guest --expires=7d
+```
+
+**Форматы длительности:**
+
+| Формат | Описание |
+|--------|----------|
+| `1h` | 1 час |
+| `12h` | 12 часов |
+| `1d` | 1 день |
+| `7d` | 7 дней |
+| `30d` | 30 дней |
+| `4w` | 4 недели |
+
+**Механизм работы:**
+
+1. При создании клиента с `--expires` сохраняется timestamp истечения в `/root/awg/expiry/<имя>`.
+2. Cron-задача `/etc/cron.d/awg-expiry` проверяет каждые 5 минут.
+3. Истёкшие клиенты автоматически удаляются (конфиг, ключи, запись в серверном конфиге).
+4. При удалении последнего expiry-клиента cron-задача автоматически удаляется.
+
+**Проверка:** `list -v` показывает оставшееся время для каждого клиента с истечением.
+
+---
+
+<a id="vpnuri-adv"></a>
+## 📱 vpn:// URI импорт
+
+При создании клиента автоматически генерируется `.vpnuri` файл с `vpn://` URI для быстрого импорта в Amnezia Client.
+
+**Расположение файлов:** `/root/awg/<имя_клиента>.vpnuri`
+
+**Формат:** Конфигурация сжимается через zlib (Perl `Compress::Zlib`) и кодируется в Base64, формируя URI вида `vpn://...`.
+
+**Использование в Amnezia Client:**
+
+1. Скопируйте содержимое `.vpnuri` файла
+2. Откройте Amnezia Client
+3. «Добавить VPN» → «Вставить из буфера»
+4. Конфигурация импортируется автоматически
+
+**Права доступа:** Файлы `.vpnuri` имеют права 600 (только root).
+
+---
+
+<a id="debian-support-adv"></a>
+## 🐧 Поддержка Debian
+
+Начиная с v5.6.0, инсталлятор полностью поддерживает Debian 12 (bookworm) и Debian 13 (trixie).
+
+**Различия Ubuntu vs Debian:**
+
+| Аспект | Ubuntu 24.04 | Debian 12 (bookworm) | Debian 13 (trixie) |
+|--------|-------------|---------------------|-------------------|
+| PPA codename | native | маппинг на `focal` | маппинг на `noble` |
+| APT формат | `.list` | `.list` | DEB822 `.sources` |
+| Headers | `linux-headers-$(uname -r)` | fallback на `linux-headers-amd64` | fallback на `linux-headers-amd64` |
+| deb-src | Да | Нет | Нет |
+| snapd/lxd cleanup | Да | Пропускается | Пропускается |
+
+**Предварительная подготовка Debian:**
+
+На минимальных установках Debian отсутствует `curl`:
+
+```bash
+apt-get update && apt-get install -y curl
+```
+
+**Ожидаемые предупреждения:**
+
+При установке на Debian вы можете увидеть предупреждение `sudo removal refused` — это нормально, так как Debian использует `sudo` как системный пакет и скрипт корректно пропускает его удаление.
 
 ---
 
