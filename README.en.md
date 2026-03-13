@@ -64,7 +64,7 @@ sudo bash ./install_amneziawg.sh
 * 🗑️ **Clean uninstall:** Full removal (`--uninstall`).
 * 📝 **Logging:** All actions logged to files in `/root/awg/`.
 * 📊 **Traffic statistics:** `stats` command with formatted output and `--json` for automation.
-* ⏳ **Temporary clients:** `--expires` to create clients with auto-removal on expiration (1h-30d).
+* ⏳ **Temporary clients:** `--expires` to create clients with auto-removal on expiration (1h, 12h, 1d, 7d, 30d, 4w).
 * 📱 **Quick import:** `vpn://` URI generation (`.vpnuri`) for one-tap import into Amnezia Client.
 * 🐧 **Debian support:** Full support for Debian 12 (bookworm) and 13 (trixie) alongside Ubuntu.
 
@@ -73,7 +73,7 @@ sudo bash ./install_amneziawg.sh
 <a id="requirements"></a>
 ## 🖥️ Requirements
 
-* **OS:** A **clean** installation of **Ubuntu Server 24.04 LTS** / **Debian 12** / **Debian 13** Minimal.
+* **OS:** A **clean** installation of **Ubuntu Server 24.04 LTS** / **Ubuntu 25.10** (⚠️) / **Debian 12** / **Debian 13** Minimal.
 * **Access:** `root` privileges (via `sudo`).
 * **Internet:** Stable connection.
 * **Resources:** ~1 GB RAM (2+ GB recommended), minimum ~2 GB disk (3+ GB recommended).
@@ -119,7 +119,7 @@ This configuration is more than enough for comfortable AmneziaWG operation with 
 
 This installation method ensures correct handling of interactive prompts and colored output in your terminal.
 
-1.  **Connect** to a **clean** server (Ubuntu 24.04 / Debian 12 / Debian 13) via SSH.
+1.  **Connect** to a **clean** server (Ubuntu 24.04 / Ubuntu 25.10 / Debian 12 / Debian 13) via SSH.
     > **Tip:** After creating the server, wait 5-10 minutes for all background initialization processes to complete before starting the installation.
 
 2.  **Download the script:**
