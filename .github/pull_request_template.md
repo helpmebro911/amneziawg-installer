@@ -19,4 +19,5 @@
 - [ ] CHANGELOG.md **and** CHANGELOG.en.md updated
 - [ ] SCRIPT_VERSION updated (if releasing new version)
 - [ ] Documentation updated (if applicable)
+- [ ] Security-sensitive changes reviewed (no eval/source on user data, strict permissions)
 - [ ] English script versions (`_en.sh`) synchronized (if Russian scripts modified)

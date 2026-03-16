@@ -10,6 +10,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.7.2] — 2026-03-16
+
+### Security
+
+- **safe_load_config():** Replaced `source` with a whitelist config parser in `awg_common.sh` — only permitted keys (AWG_*, OS_*, DISABLE_IPV6, etc.) are loaded from the file. Eliminates potential code injection via `awgsetup_cfg.init`.
+- **Supply chain pinning:** Script download URLs are pinned to the version tag (`AWG_BRANCH=v${SCRIPT_VERSION}`) instead of `main`. The `AWG_BRANCH` variable can be overridden for development.
+- **HTTPS for IP detection:** `get_server_public_ip()` uses HTTPS instead of HTTP for external IP detection.
+
+### Fixed
+
+- **modify allowlist:** Removed Address and MTU from allowed `modify` parameters — these are managed by the installer and should not be changed manually.
+- **flock for add/remove peer:** Peer addition and removal operations are protected with `flock -x` to prevent race conditions during parallel invocations.
+- **cron expiry env:** Expiry cron job explicitly sets PATH and uses `--conf-dir` for correct operation in minimal cron environments.
+- **log_warn for malformed expiry:** Malformed expiry files are handled via `log_warn` instead of being silently skipped.
+- **Dead code:** Removed unused functions and variables from `awg_common.sh`.
+
+### Changed
+
+- **list_clients O(N):** Optimized `list_clients` — single-pass algorithm instead of O(N*M).
+- **backup/restore:** Backups now include client expiry data (`expiry/`) and cron job.
+- **Version:** 5.7.1 → 5.7.2 across all scripts.
+
+---
+
 ## [5.7.1] — 2026-03-13
 
 ### Fixed
@@ -145,7 +169,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **awg_mktemp():** Activated automatic temp file cleanup via trap EXIT.
-- **modify:** Added an allowlist of permitted parameters (DNS, Endpoint, AllowedIPs, Address, PersistentKeepalive, MTU).
+- **modify:** Added an allowlist of permitted parameters (DNS, Endpoint, AllowedIPs, Address, PersistentKeepalive, MTU). *(Address and MTU removed in v5.7.2)*
 - **Documentation:** Removed incorrect mention of /16 subnet support.
 - Removed dead trap code from install_amneziawg.sh.
 
@@ -235,6 +259,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Diagnostic report (`--diagnostic`).
 - Full uninstall (`--uninstall`).
 
+[5.7.2]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.1...v5.7.2
+[5.7.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.0...v5.7.1
+[5.7.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.6.0...v5.7.0
 [5.6.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.5.1...v5.6.0
 [5.5.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.5...v5.5.1
 [5.5]: https://github.com/bivlked/amneziawg-installer/compare/v5.4...v5.5

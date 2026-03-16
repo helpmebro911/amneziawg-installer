@@ -44,6 +44,19 @@ This is a supplement to the main [README.en.md](README.en.md), containing deeper
 
 ---
 
+### What's New in v5.7.2
+
+- **Safe configuration loading** — whitelist parser `safe_load_config()` replaces `source` to prevent injection attacks
+- **Supply chain pinning** — script download URLs are pinned to the version tag, not `main`
+- **HTTPS for IP detection** — external IP is determined via HTTPS
+- **Parallel operation locking** — `flock` for add/remove peer prevents race conditions
+- **Optimized list_clients** — single-pass O(N) algorithm instead of O(N*M)
+- **Backups with expiry** — backups now include client expiry data and cron job
+
+For the full list of changes, see [CHANGELOG.en.md](CHANGELOG.en.md#572--2026-03-16).
+
+---
+
 <a id="features-detailed-adv"></a>
 ## ✨ Features (Detailed)
 
@@ -165,6 +178,12 @@ File: `/etc/sysctl.d/99-amneziawg-security.conf`. Includes:
 * **Settings:** Ban via `ufw`, 5 attempts → 1-hour ban.
 * **Check:** `sudo fail2ban-client status sshd`.
 
+#### Safe Configuration Loading (v5.7.2)
+
+Starting with v5.7.2, the `awgsetup_cfg.init` parameters file is loaded via `safe_load_config()` — a whitelist parser that only accepts predefined keys (`AWG_*`, `OS_*`, `DISABLE_IPV6`, `ALLOWED_IPS_*`, `NO_TWEAKS`, etc.). The previous `source` method has been completely replaced.
+
+This protects against potential code injection: even if the configuration file is modified, arbitrary commands will not execute.
+
 ---
 
 <a id="optimization-adv"></a>
@@ -275,7 +294,7 @@ PersistentKeepalive = 33
 ## 🖥️ CLI Parameters
 
 <a id="install-cli-adv"></a>
-### install_amneziawg.sh (v5.7.1)
+### install_amneziawg.sh (v5.7.2)
 
 ```
 Options:
@@ -297,7 +316,7 @@ Options:
 ```
 
 <a id="manage-cli-adv"></a>
-### manage_amneziawg.sh (v5.7.1)
+### manage_amneziawg.sh (v5.7.2)
 
 ```
 Options:
@@ -321,9 +340,9 @@ Usage: `sudo bash /root/awg/manage_amneziawg.sh <command>`:
 * **`remove <name>`:** Remove a client (config, keys, server config entry).
 * **`list [-v]`:** List clients (with details when using `-v`).
 * **`regen [name]`:** Regenerate `.conf`/`.png` files for one or all clients.
-* **`modify <name> <param> <value>`:** Modify a client parameter in the `.conf` file. Allowed parameters: DNS, Endpoint, AllowedIPs, Address, PersistentKeepalive, MTU.
-* **`backup`:** Create a backup (configs + keys).
-* **`restore [file]`:** Restore from a backup.
+* **`modify <name> <param> <value>`:** Modify a client parameter in the `.conf` file. Allowed parameters: DNS, Endpoint, AllowedIPs, PersistentKeepalive. QR code and vpn:// URI are automatically regenerated after modification.
+* **`backup`:** Create a backup (configs + keys + client expiry data + cron).
+* **`restore [file]`:** Restore from a backup (including expiry data and cron job).
 * **`check` / `status`:** Check server status (service, port, AWG 2.0 parameters).
 * **`show`:** Run `awg show`.
 * **`restart`:** Restart the AmneziaWG service.
@@ -358,7 +377,7 @@ sudo bash /root/awg/manage_amneziawg.sh restore
 ## 🛠️ Technical Details
 
 <a id="architecture-adv"></a>
-### Script Architecture (v5.7.1)
+### Script Architecture (v5.7.2)
 
 | File | Purpose |
 |------|---------|
@@ -414,6 +433,22 @@ Ensures automatic rebuilding of the `amneziawg` kernel module on kernel updates.
 * **Python/awgcfg.py:** Completely removed. The config deletion bug workaround is no longer needed.
 
 Client keys are stored in `/root/awg/keys/` (permissions 600). Server keys are in `/root/awg/server_private.key` and `server_public.key`.
+
+#### Version-Pinned URLs (v5.7.2)
+
+The installer downloads `awg_common.sh` and `manage_amneziawg.sh` from URLs pinned to the specific version tag:
+
+```
+https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.7.2/awg_common.sh
+```
+
+This provides **supply chain pinning** — ensuring downloaded scripts match the installer version, even if `main` has already been updated.
+
+For development, you can override the branch:
+
+```bash
+AWG_BRANCH=my-feature-branch sudo bash ./install_amneziawg.sh
+```
 
 ---
 

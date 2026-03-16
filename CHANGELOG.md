@@ -10,6 +10,30 @@
 
 ---
 
+## [5.7.2] — 2026-03-16
+
+### Безопасность
+
+- **safe_load_config():** Замена `source` на whitelist-парсер конфигурации в `awg_common.sh` — только разрешённые ключи (AWG_*, OS_*, DISABLE_IPV6 и др.) загружаются из файла. Устраняет потенциальную инъекцию кода через `awgsetup_cfg.init`.
+- **Supply chain pinning:** URL скачивания скриптов привязаны к тегу версии (`AWG_BRANCH=v${SCRIPT_VERSION}`) вместо `main`. Переменная `AWG_BRANCH` доступна для переопределения при разработке.
+- **HTTPS для IP-детекции:** `get_server_public_ip()` использует HTTPS вместо HTTP для определения внешнего IP.
+
+### Исправлено
+
+- **modify allowlist:** Убраны Address и MTU из допустимых параметров `modify` — эти параметры управляются инсталлятором и не должны изменяться вручную.
+- **flock для add/remove peer:** Операции добавления и удаления пиров защищены `flock -x` для предотвращения race condition при параллельных вызовах.
+- **cron expiry env:** Cron-задача expiry явно задаёт PATH и использует `--conf-dir` для корректной работы в минимальном cron-окружении.
+- **log_warn для malformed expiry:** Некорректные файлы истечения обрабатываются через `log_warn` вместо тихого пропуска.
+- **Мёртвый код:** Удалены неиспользуемые функции и переменные из `awg_common.sh`.
+
+### Улучшено
+
+- **list_clients O(N):** Оптимизация `list_clients` — однопроходный алгоритм вместо O(N*M).
+- **backup/restore:** Бэкапы теперь включают данные истечения клиентов (`expiry/`) и cron-задачу.
+- **Версия:** 5.7.1 → 5.7.2 во всех скриптах.
+
+---
+
 ## [5.7.1] — 2026-03-13
 
 ### Исправлено
@@ -145,7 +169,7 @@
 ### Улучшено
 
 - **awg_mktemp():** Активирована автоочистка временных файлов через trap EXIT.
-- **modify:** Добавлен allowlist допустимых параметров (DNS, Endpoint, AllowedIPs, Address, PersistentKeepalive, MTU).
+- **modify:** Добавлен allowlist допустимых параметров (DNS, Endpoint, AllowedIPs, Address, PersistentKeepalive, MTU). *(Address и MTU убраны в v5.7.2)*
 - **Документация:** Убрано некорректное упоминание поддержки подсети /16.
 - Удалён мёртвый trap-код из install_amneziawg.sh.
 
@@ -235,6 +259,9 @@
 - Диагностический отчет (`--diagnostic`).
 - Полная деинсталляция (`--uninstall`).
 
+[5.7.2]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.1...v5.7.2
+[5.7.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.0...v5.7.1
+[5.7.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.6.0...v5.7.0
 [5.6.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.5.1...v5.6.0
 [5.5.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.5...v5.5.1
 [5.5]: https://github.com/bivlked/amneziawg-installer/compare/v5.4...v5.5

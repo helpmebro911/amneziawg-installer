@@ -62,6 +62,18 @@ Before submitting a PR, ensure:
    - Fresh install on clean Debian 13 (trixie)
    - Client expiry: add with --expires, verify cron auto-removal
    - Stats: verify `stats` and `stats --json` output
+   - Backup/restore: verify expiry data and cron job are included in backup and correctly restored
+   - Uninstall: verify complete cleanup (UFW, Fail2Ban, cron, kernel module, working directory)
+
+## Security Review Checklist
+
+For security-sensitive changes, additionally verify:
+
+- [ ] No `source` or `eval` on user-controlled files (use `safe_load_config()`)
+- [ ] All file operations use strict permissions (600/700)
+- [ ] No unquoted variable expansions in command arguments
+- [ ] Download URLs are pinned to version tags (not `main`)
+- [ ] Concurrent operations are protected with `flock`
 
 ## Multilingual Scripts
 
