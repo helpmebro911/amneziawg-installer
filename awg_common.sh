@@ -539,7 +539,16 @@ generate_vpn_uri() {
     client_privkey=$(grep -oP 'PrivateKey\s*=\s*\K\S+' "$conf_file") || return 1
     client_ip=$(grep -oP 'Address\s*=\s*\K[0-9./]+' "$conf_file") || return 1
     server_pubkey=$(cat "$AWG_DIR/server_public.key" 2>/dev/null) || return 1
-    endpoint=$(grep -oP 'Endpoint\s*=\s*\K[^:]+' "$conf_file") || return 1
+    local raw_endpoint
+    raw_endpoint=$(grep -oP 'Endpoint\s*=\s*\K\S+' "$conf_file") || return 1
+    if [[ "$raw_endpoint" == \[* ]]; then
+        # IPv6: [addr]:port
+        endpoint="${raw_endpoint%%]:*}"
+        endpoint="${endpoint#\[}"
+    else
+        # IPv4/hostname: addr:port
+        endpoint="${raw_endpoint%:*}"
+    fi
     allowed_ips=$(grep -oP 'AllowedIPs\s*=\s*\K.+' "$conf_file" | tr -d ' ') || allowed_ips="0.0.0.0/0"
 
     local vpn_uri perl_err
