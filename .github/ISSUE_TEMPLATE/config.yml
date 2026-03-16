@@ -1,6 +1,6 @@
 blank_issues_enabled: true
 contact_links:
-  - name: "FAQ / FAQ & Troubleshooting"
+  - name: "FAQ & Troubleshooting"
     url: https://github.com/bivlked/amneziawg-installer#faq-main
     about: "Прочитайте FAQ / Read the FAQ before opening an issue"
   - name: "Документация / Advanced Documentation"
@@ -9,3 +9,6 @@ contact_links:
   - name: "Documentation (English)"
     url: https://github.com/bivlked/amneziawg-installer/blob/main/README.en.md
     about: "English version of the project documentation"
+  - name: "Обсуждения / Discussions"
+    url: https://github.com/bivlked/amneziawg-installer/discussions
+    about: "Задайте вопрос сообществу / Ask the community a question"
