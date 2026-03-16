@@ -322,16 +322,18 @@ EOF
 # Uses awg syncconf for zero-downtime peer updates
 # Falls back to full restart on error
 apply_config() {
-    local strip_out
+    local strip_out rc
     strip_out=$(awg-quick strip awg0 2>/dev/null) || {
         log_warn "awg-quick strip failed, falling back to full restart."
-        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Service restart error."
-        return $?
+        systemctl restart awg-quick@awg0 2>/dev/null; rc=$?
+        [[ $rc -ne 0 ]] && log_warn "Service restart error."
+        return $rc
     }
     echo "$strip_out" | awg syncconf awg0 /dev/stdin 2>/dev/null || {
         log_warn "awg syncconf failed, falling back to full restart."
-        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Service restart error."
-        return $?
+        systemctl restart awg-quick@awg0 2>/dev/null; rc=$?
+        [[ $rc -ne 0 ]] && log_warn "Service restart error."
+        return $rc
     }
     log_debug "Config applied (syncconf)."
 }
@@ -385,7 +387,7 @@ add_peer_to_server() {
         return 1
     fi
 
-    if grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+    if grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE" 2>/dev/null; then
         log_error "Peer '$name' already exists in config"
         return 1
     fi
@@ -428,7 +430,7 @@ remove_peer_from_server() {
         return 1
     fi
 
-    if ! grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+    if ! grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE" 2>/dev/null; then
         log_error "Peer '$name' not found in config"
         return 1
     fi
@@ -702,7 +704,7 @@ regenerate_client() {
     load_awg_params || return 1
 
     # Check that client exists in server config
-    if ! grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+    if ! grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE" 2>/dev/null; then
         log_error "Client '$name' not found in server config"
         return 1
     fi
@@ -832,7 +834,7 @@ parse_duration() {
 set_client_expiry() {
     local name="$1"
     local duration="$2"
-    if ! grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+    if ! grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE" 2>/dev/null; then
         log_error "Client '$name' not found."
         return 1
     fi
@@ -878,8 +880,15 @@ format_remaining() {
         local ago=$(( (-diff) / 3600 ))
         if [[ $ago -ge 24 ]]; then
             echo "expired $(( ago / 24 ))d ago"
-        else
+        elif [[ $ago -ge 1 ]]; then
             echo "expired ${ago}h ago"
+        else
+            local ago_mins=$(( (-diff) / 60 ))
+            if [[ $ago_mins -ge 1 ]]; then
+                echo "expired ${ago_mins}m ago"
+            else
+                echo "just expired"
+            fi
         fi
         return 0
     fi

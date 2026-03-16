@@ -320,7 +320,7 @@ modify_client() {
         return 1
     fi
 
-    if ! grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE"; then
+    if ! grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE"; then
         die "Клиент '$name' не найден."
     fi
 
@@ -348,10 +348,11 @@ modify_client() {
 
     log "Параметр '$param' изменен."
 
-    # Перегенерация QR для важных параметров
+    # Перегенерация QR и vpn:// URI для важных параметров
     if [[ "$param" =~ ^(AllowedIPs|Address|PublicKey|Endpoint|PrivateKey|DNS)$ ]]; then
-        log "Перегенерация QR-кода..."
+        log "Перегенерация QR-кода и vpn:// URI..."
         generate_qr "$name" || log_warn "Не удалось обновить QR-код."
+        generate_vpn_uri "$name" || log_warn "Не удалось обновить vpn:// URI."
     fi
 
     return 0
@@ -719,7 +720,7 @@ case $COMMAND in
         [[ -z "$CLIENT_NAME" ]] && die "Не указано имя клиента."
         validate_client_name "$CLIENT_NAME" || exit 1
 
-        if grep -q "^#_Name = ${CLIENT_NAME}$" "$SERVER_CONF_FILE"; then
+        if grep -qxF "#_Name = ${CLIENT_NAME}" "$SERVER_CONF_FILE"; then
             die "Клиент '$CLIENT_NAME' уже существует."
         fi
 
@@ -746,7 +747,7 @@ case $COMMAND in
     remove)
         [[ -z "$CLIENT_NAME" ]] && die "Не указано имя клиента."
         validate_client_name "$CLIENT_NAME" || exit 1
-        if ! grep -q "^#_Name = ${CLIENT_NAME}$" "$SERVER_CONF_FILE"; then
+        if ! grep -qxF "#_Name = ${CLIENT_NAME}" "$SERVER_CONF_FILE"; then
             die "Клиент '$CLIENT_NAME' не найден."
         fi
         if ! confirm_action "удалить" "клиента '$CLIENT_NAME'"; then exit 1; fi
@@ -778,7 +779,7 @@ case $COMMAND in
         if [[ -n "$CLIENT_NAME" ]]; then
             # Перегенерация одного клиента
             validate_client_name "$CLIENT_NAME" || exit 1
-            if ! grep -q "^#_Name = ${CLIENT_NAME}$" "$SERVER_CONF_FILE"; then
+            if ! grep -qxF "#_Name = ${CLIENT_NAME}" "$SERVER_CONF_FILE"; then
                 die "Клиент '$CLIENT_NAME' не найден."
             fi
             regenerate_client "$CLIENT_NAME" || { log_error "Ошибка перегенерации '$CLIENT_NAME'."; _cmd_rc=1; }

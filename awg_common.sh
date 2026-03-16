@@ -322,16 +322,18 @@ EOF
 # Использует awg syncconf для zero-downtime обновления пиров
 # Fallback на полный перезапуск при ошибке
 apply_config() {
-    local strip_out
+    local strip_out rc
     strip_out=$(awg-quick strip awg0 2>/dev/null) || {
         log_warn "awg-quick strip не удался, использую полный перезапуск."
-        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Ошибка перезапуска."
-        return $?
+        systemctl restart awg-quick@awg0 2>/dev/null; rc=$?
+        [[ $rc -ne 0 ]] && log_warn "Ошибка перезапуска."
+        return $rc
     }
     echo "$strip_out" | awg syncconf awg0 /dev/stdin 2>/dev/null || {
         log_warn "awg syncconf не удался, использую полный перезапуск."
-        systemctl restart awg-quick@awg0 2>/dev/null || log_warn "Ошибка перезапуска."
-        return $?
+        systemctl restart awg-quick@awg0 2>/dev/null; rc=$?
+        [[ $rc -ne 0 ]] && log_warn "Ошибка перезапуска."
+        return $rc
     }
     log_debug "Конфигурация применена (syncconf)."
 }
@@ -385,7 +387,7 @@ add_peer_to_server() {
         return 1
     fi
 
-    if grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+    if grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE" 2>/dev/null; then
         log_error "Пир '$name' уже существует в конфиге"
         return 1
     fi
@@ -428,7 +430,7 @@ remove_peer_from_server() {
         return 1
     fi
 
-    if ! grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+    if ! grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE" 2>/dev/null; then
         log_error "Пир '$name' не найден в конфиге"
         return 1
     fi
@@ -702,7 +704,7 @@ regenerate_client() {
     load_awg_params || return 1
 
     # Проверяем, что клиент существует в серверном конфиге
-    if ! grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+    if ! grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE" 2>/dev/null; then
         log_error "Клиент '$name' не найден в серверном конфиге"
         return 1
     fi
@@ -832,7 +834,7 @@ parse_duration() {
 set_client_expiry() {
     local name="$1"
     local duration="$2"
-    if ! grep -q "^#_Name = ${name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+    if ! grep -qxF "#_Name = ${name}" "$SERVER_CONF_FILE" 2>/dev/null; then
         log_error "Клиент '$name' не найден."
         return 1
     fi
@@ -878,8 +880,15 @@ format_remaining() {
         local ago=$(( (-diff) / 3600 ))
         if [[ $ago -ge 24 ]]; then
             echo "истёк $(( ago / 24 ))д назад"
-        else
+        elif [[ $ago -ge 1 ]]; then
             echo "истёк ${ago}ч назад"
+        else
+            local ago_mins=$(( (-diff) / 60 ))
+            if [[ $ago_mins -ge 1 ]]; then
+                echo "истёк ${ago_mins}м назад"
+            else
+                echo "только что истёк"
+            fi
         fi
         return 0
     fi

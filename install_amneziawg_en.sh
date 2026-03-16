@@ -31,7 +31,7 @@ MANAGE_SCRIPT_PATH="$AWG_DIR/manage_amneziawg.sh"
 # CLI flags
 UNINSTALL=0; HELP=0; DIAGNOSTIC=0; VERBOSE=0; NO_COLOR=0; AUTO_YES=0; NO_TWEAKS=0
 CLI_PORT=""; CLI_SUBNET=""; CLI_DISABLE_IPV6="default"
-CLI_ROUTING_MODE="default"; CLI_CUSTOM_ROUTES=""; CLI_ENDPOINT=""
+CLI_ROUTING_MODE="default"; CLI_CUSTOM_ROUTES=""; CLI_ENDPOINT=""; CLI_NO_TWEAKS=0
 
 # --- Auto-cleanup of temporary files ---
 _install_temp_files=()
@@ -60,7 +60,7 @@ while [[ $# -gt 0 ]]; do
         --route-custom=*) CLI_ROUTING_MODE=3; CLI_CUSTOM_ROUTES="${1#*=}" ;;
         --endpoint=*)    CLI_ENDPOINT="${1#*=}" ;;
         --yes|-y)        AUTO_YES=1 ;;
-        --no-tweaks)     NO_TWEAKS=1 ;;
+        --no-tweaks)     NO_TWEAKS=1; CLI_NO_TWEAKS=1 ;;
         *) echo "Unknown argument: $1"; HELP=1 ;;
     esac
     shift
@@ -100,7 +100,7 @@ log_msg() {
         printf "${color_start}%s${color_end}\n" "$entry" >&2
     elif [[ "$type" == "INFO" ]]; then
         printf "${color_start}%s${color_end}\n" "$entry"
-    else
+    elif [[ "$type" != "DEBUG" ]]; then
         printf "${color_start}%s${color_end}\n" "$entry"
     fi
 }
@@ -1053,6 +1053,7 @@ initialize_setup() {
         if [[ "$CLI_ROUTING_MODE" -eq 3 ]]; then ALLOWED_IPS=$CLI_CUSTOM_ROUTES; fi
     fi
     if [[ -n "$CLI_ENDPOINT" ]]; then AWG_ENDPOINT=$CLI_ENDPOINT; fi
+    if [[ "$CLI_NO_TWEAKS" -eq 1 ]]; then NO_TWEAKS=1; fi
 
     # Request settings from user only on first run
     if [[ "$config_exists" -eq 0 ]]; then
@@ -1485,7 +1486,7 @@ step6_generate_configs() {
     log "Creating default clients..."
     local client_name
     for client_name in my_phone my_laptop; do
-        if grep -q "^#_Name = ${client_name}$" "$SERVER_CONF_FILE" 2>/dev/null; then
+        if grep -qxF "#_Name = ${client_name}" "$SERVER_CONF_FILE" 2>/dev/null; then
             log "Client '$client_name' already exists."
         else
             log "Creating client '$client_name'..."
@@ -1591,10 +1592,6 @@ if [[ "$DIAGNOSTIC" -eq 1 ]]; then create_diagnostic_report; exit 0; fi
 if [[ "$VERBOSE" -eq 1 ]]; then set -x; fi
 
 initialize_setup
-
-current_step=0
-if [[ -f "$STATE_FILE" ]]; then current_step=$(cat "$STATE_FILE"); fi
-if ! [[ "$current_step" =~ ^[0-9]+$ ]]; then current_step=1; fi
 
 while (( current_step < 99 )); do
     log "Executing step $current_step..."
