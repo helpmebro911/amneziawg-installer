@@ -8,8 +8,8 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 peer management script
 # Author: @bivlked
-# Version: 5.7.1
-# Date: 2026-03-13
+# Version: 5.7.2
+# Date: 2026-03-16
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
@@ -699,7 +699,7 @@ stats_clients() {
 usage() {
     exec >&2
     echo ""
-    echo "AmneziaWG 2.0 management script (v5.7.1)"
+    echo "AmneziaWG 2.0 management script (v${SCRIPT_VERSION})"
     echo "=============================================="
     echo "Usage: $0 [OPTIONS] <COMMAND> [ARGUMENTS]"
     echo ""
