@@ -196,6 +196,10 @@ backup_configs() {
     cp -a "$AWG_DIR"/*.conf "$AWG_DIR"/*.png "$AWG_DIR"/*.vpnuri "$CONFIG_FILE" "$td/clients/" 2>/dev/null || true
     cp -a "$KEYS_DIR"/* "$td/keys/" 2>/dev/null || true
     cp -a "$AWG_DIR/server_private.key" "$AWG_DIR/server_public.key" "$td/" 2>/dev/null || true
+    if [[ -d "${EXPIRY_DIR:-$AWG_DIR/expiry}" ]]; then
+        cp -a "${EXPIRY_DIR:-$AWG_DIR/expiry}" "$td/expiry" 2>/dev/null || true
+    fi
+    [[ -f /etc/cron.d/awg-expiry ]] && cp -a /etc/cron.d/awg-expiry "$td/" 2>/dev/null || true
 
     tar -czf "$bf" -C "$td" . || { rm -rf "$td"; die "Ошибка tar $bf"; }
     rm -rf "$td"
@@ -286,6 +290,17 @@ restore_backup() {
     # Серверные ключи
     [[ -f "$td/server_private.key" ]] && cp -a "$td/server_private.key" "$AWG_DIR/"
     [[ -f "$td/server_public.key" ]] && cp -a "$td/server_public.key" "$AWG_DIR/"
+
+    if [[ -d "$td/expiry" ]]; then
+        log "Восстановление данных expiry..."
+        mkdir -p "${EXPIRY_DIR:-$AWG_DIR/expiry}"
+        cp -a "$td/expiry/"* "${EXPIRY_DIR:-$AWG_DIR/expiry}/" 2>/dev/null || true
+        chmod 600 "${EXPIRY_DIR:-$AWG_DIR/expiry}"/* 2>/dev/null
+    fi
+    if [[ -f "$td/awg-expiry" ]]; then
+        cp -a "$td/awg-expiry" /etc/cron.d/awg-expiry
+        chmod 644 /etc/cron.d/awg-expiry
+    fi
 
     rm -rf "$td"
 
