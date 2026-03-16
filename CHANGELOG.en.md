@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+---
+
 ## [5.7.2] — 2026-03-16
 
 ### Security
@@ -259,6 +263,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Diagnostic report (`--diagnostic`).
 - Full uninstall (`--uninstall`).
 
+[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.2...HEAD
 [5.7.2]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.1...v5.7.2
 [5.7.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.0...v5.7.1
 [5.7.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.6.0...v5.7.0
