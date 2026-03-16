@@ -62,7 +62,7 @@ get_main_nic() {
 get_server_public_ip() {
     local ip=""
     local svc
-    for svc in ifconfig.me api.ipify.org icanhazip.com ipinfo.io/ip; do
+    for svc in https://ifconfig.me https://api.ipify.org https://icanhazip.com https://ipinfo.io/ip; do
         ip=$(curl -4 -sf --max-time 5 "$svc" 2>/dev/null | tr -d '[:space:]')
         if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "$ip"
@@ -953,6 +953,7 @@ check_expired_clients() {
         local expires_at
         expires_at=$(cat "$efile" 2>/dev/null)
         if [[ -z "$expires_at" || ! "$expires_at" =~ ^[0-9]+$ ]]; then
+            log_warn "Некорректные данные expiry для '$name': '$(head -c 50 "$efile" 2>/dev/null)'"
             continue
         fi
 
@@ -986,6 +987,9 @@ install_expiry_cron() {
     fi
     cat > "$EXPIRY_CRON" << CRONEOF
 # AmneziaWG client expiry check — every 5 minutes
+AWG_DIR=${AWG_DIR}
+CONFIG_FILE=${CONFIG_FILE}
+SERVER_CONF_FILE=${SERVER_CONF_FILE}
 */5 * * * * root /bin/bash -c 'source ${AWG_DIR}/awg_common.sh || exit 1; check_expired_clients' >> ${AWG_DIR}/expiry.log 2>&1
 CRONEOF
     chmod 644 "$EXPIRY_CRON"
