@@ -89,8 +89,6 @@ sudo bash ./install_amneziawg.sh --yes --route-all
 * **Ресурсы:** ~1 ГБ ОЗУ (рекомендуется 2+ ГБ), минимум ~2 ГБ диска (рекомендуется 3+ ГБ).
 * **SSH:** Доступ по SSH.
 
-> **Debian:** На минимальных установках Debian отсутствует `curl` — установите `apt-get install -y curl` перед скачиванием инсталлятора.
-
 **Совместимость ОС:**
 
 | ОС | Статус | Примечание |
@@ -135,6 +133,7 @@ sudo bash ./install_amneziawg.sh --yes --route-all
 2.  **Скачайте скрипт:**
     ```bash
     wget https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg.sh
+    # или: curl -fLo install_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg.sh
     ```
 3.  **Сделайте его исполняемым:**
     ```bash

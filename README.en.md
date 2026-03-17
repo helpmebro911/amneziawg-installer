@@ -89,8 +89,6 @@ All parameters are accepted automatically. Details: [ADVANCED.en.md#cli-params-a
 * **Resources:** ~1 GB RAM (2+ GB recommended), minimum ~2 GB disk (3+ GB recommended).
 * **SSH:** SSH access to the server.
 
-> **Debian:** Minimal Debian installations do not include `curl` — install it with `apt-get install -y curl` before downloading the installer.
-
 **OS Compatibility:**
 
 | OS | Status | Notes |
@@ -135,6 +133,7 @@ This installation method ensures correct handling of interactive prompts and col
 2.  **Download the script:**
     ```bash
     wget https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg.sh
+    # or: curl -fLo install_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/install_amneziawg.sh
     ```
 3.  **Make it executable:**
     ```bash
