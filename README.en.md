@@ -1,3 +1,4 @@
+<a id="top"></a>
 <p align="center">
   🇷🇺 <a href="README.md">Русский</a> | 🇬🇧 <b>English</b>
 </p>
@@ -430,5 +431,5 @@ For the changelog, see **[CHANGELOG.en.md](CHANGELOG.en.md)**.
 ---
 
 <p align="center">
-  <a href="#">↑ Back to top</a>
+  <a href="#top">↑ Back to top</a>
 </p>

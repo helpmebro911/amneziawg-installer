@@ -1,3 +1,4 @@
+<a id="top"></a>
 <p align="center">
   🇷🇺 <b>Русский</b> | 🇬🇧 <a href="README.en.md">English</a>
 </p>
@@ -430,5 +431,5 @@ sudo bash /root/awg/manage_amneziawg.sh restart              # Перезапу�
 ---
 
 <p align="center">
-  <a href="#">↑ К началу</a>
+  <a href="#top">↑ К началу</a>
 </p>
