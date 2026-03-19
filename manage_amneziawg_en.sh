@@ -492,9 +492,8 @@ list_clients() {
     if [[ -n "$awg_dump" ]]; then
         # shellcheck disable=SC2034
         while IFS=$'\t' read -r _dpk _dpsk _dep _daips _dhs _drx _dtx _dka; do
-            [[ -z "$_dpsk" ]] && continue
             _pk_to_hs["$_dpk"]="$_dhs"
-        done <<< "$awg_dump"
+        done < <(echo "$awg_dump" | tail -n +2)
     fi
 
     if [[ $verbose -eq 1 ]]; then
@@ -647,8 +646,6 @@ stats_clients() {
     # awg show dump: each peer line = pubkey psk endpoint allowed-ips latest-handshake rx tx keepalive
     # shellcheck disable=SC2034
     while IFS=$'\t' read -r pk psk ep aips handshake rx tx keepalive; do
-        # Skip interface line (first line)
-        if [[ -z "$psk" ]]; then continue; fi
         local cname="${pk_to_name[$pk]:-unknown}"
         if [[ "$cname" == "unknown" ]]; then continue; fi
 
@@ -682,7 +679,7 @@ stats_clients() {
             tx_h=$(format_bytes "$tx")
             table_rows+=("$(printf "%-15s | %-15s | %-12s | %-12s | %-19s | %s" "$cname" "$ip" "$rx_h" "$tx_h" "$hs_str" "$status")")
         fi
-    done <<< "$awg_dump"
+    done < <(echo "$awg_dump" | tail -n +2)
 
     if [[ "$JSON_OUTPUT" -eq 1 ]]; then
         ( IFS=","; echo "[${json_entries[*]}]" )
@@ -741,10 +738,12 @@ usage() {
 # Main logic
 # ==============================================================================
 
+if [[ "$COMMAND" == "help" || -z "$COMMAND" ]]; then
+    usage
+fi
+
 check_dependencies || exit 1
 cd "$AWG_DIR" || die "Failed to change to $AWG_DIR"
-
-if [[ -z "$COMMAND" ]]; then usage; fi
 
 log "Running command '$COMMAND'..."
 _cmd_rc=0

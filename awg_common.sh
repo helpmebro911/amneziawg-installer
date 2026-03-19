@@ -58,13 +58,18 @@ get_main_nic() {
     ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}'
 }
 
-# Определение внешнего IP-адреса сервера
+# Определение внешнего IP-адреса сервера (с кэшированием)
+_CACHED_PUBLIC_IP=""
 get_server_public_ip() {
-    local ip=""
-    local svc
+    if [[ -n "$_CACHED_PUBLIC_IP" ]]; then
+        echo "$_CACHED_PUBLIC_IP"
+        return 0
+    fi
+    local ip="" svc
     for svc in https://ifconfig.me https://api.ipify.org https://icanhazip.com https://ipinfo.io/ip; do
         ip=$(curl -4 -sf --max-time 5 "$svc" 2>/dev/null | tr -d '[:space:]')
         if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            _CACHED_PUBLIC_IP="$ip"
             echo "$ip"
             return 0
         fi
@@ -253,6 +258,7 @@ render_server_config() {
 [Interface]
 PrivateKey = ${server_privkey}
 Address = ${server_ip}/${subnet_mask}
+MTU = 1280
 ListenPort = ${AWG_PORT}
 PostUp = ${postup}
 PostDown = ${postdown}
@@ -307,6 +313,7 @@ render_client_config() {
 PrivateKey = ${client_privkey}
 Address = ${client_ip}/32
 DNS = 1.1.1.1
+MTU = 1280
 Jc = ${AWG_Jc}
 Jmin = ${AWG_Jmin}
 Jmax = ${AWG_Jmax}
@@ -376,25 +383,19 @@ get_next_client_ip() {
     local subnet_base
     subnet_base=$(echo "${AWG_TUNNEL_SUBNET:-10.9.9.1/24}" | cut -d'/' -f1 | cut -d'.' -f1-3)
 
-    # Собираем занятые IP: .1 (сервер) + все AllowedIPs из серверного конфига
-    local used_ips=("${subnet_base}.1")
+    # Ассоциативный массив для O(1) lookup
+    declare -A used_set
+    used_set["${subnet_base}.1"]=1
     if [[ -f "$SERVER_CONF_FILE" ]]; then
         while IFS= read -r ip; do
-            used_ips+=("$ip")
+            used_set["$ip"]=1
         done < <(grep -oP 'AllowedIPs\s*=\s*\K[0-9.]+' "$SERVER_CONF_FILE")
     fi
 
-    local i candidate found
+    local i candidate
     for i in $(seq 2 254); do
         candidate="${subnet_base}.${i}"
-        found=0
-        for used in "${used_ips[@]}"; do
-            if [[ "$used" == "$candidate" ]]; then
-                found=1
-                break
-            fi
-        done
-        if [[ $found -eq 0 ]]; then
+        if [[ -z "${used_set[$candidate]+x}" ]]; then
             echo "$candidate"
             return 0
         fi

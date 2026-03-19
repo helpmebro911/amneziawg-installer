@@ -120,7 +120,7 @@ die()       { log_error "КРИТИЧЕСКАЯ ОШИБКА: $1"; log_error "У
 show_help() {
     cat << 'EOF'
 Использование: sudo bash install_amneziawg.sh [ОПЦИИ]
-Скрипт для автоматической установки и настройки AmneziaWG 2.0 на Ubuntu 24.04.
+Скрипт для установки и настройки AmneziaWG 2.0 на Ubuntu (24.04 / 25.10) и Debian (12 / 13).
 
 Опции:
   -h, --help            Показать эту справку и выйти
@@ -394,6 +394,9 @@ validate_subnet() {
     if [[ "${BASH_REMATCH[4]}" -eq 0 ]] || [[ "${BASH_REMATCH[4]}" -eq 255 ]]; then
         die "Некорректная подсеть: '$subnet'. Последний октет не может быть 0 (сетевой адрес) или 255 (broadcast)."
     fi
+    if [[ "${BASH_REMATCH[4]}" -ne 1 ]]; then
+        die "Некорректная подсеть: '$subnet'. Последний октет должен быть 1 (адрес сервера в подсети)."
+    fi
 }
 
 validate_cidr_list() {
@@ -485,7 +488,7 @@ generate_awg_params() {
 
     AWG_Jc=$(rand_range 4 8)
     AWG_Jmin=$(rand_range 40 89)
-    AWG_Jmax=$(( AWG_Jmin + $(rand_range 100 999) ))
+    AWG_Jmax=$(( AWG_Jmin + $(rand_range 100 500) ))
     AWG_S1=$(rand_range 15 150)
     AWG_S2=$(rand_range 15 150)
 

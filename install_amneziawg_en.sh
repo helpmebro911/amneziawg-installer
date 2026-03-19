@@ -120,7 +120,7 @@ die()       { log_error "CRITICAL ERROR: $1"; log_error "Installation aborted. L
 show_help() {
     cat << 'EOF'
 Usage: sudo bash install_amneziawg_en.sh [OPTIONS]
-Script for automated installation and configuration of AmneziaWG 2.0 on Ubuntu 24.04.
+Script for installation and configuration of AmneziaWG 2.0 on Ubuntu (24.04 / 25.10) and Debian (12 / 13).
 
 Options:
   -h, --help            Show this help and exit
@@ -394,6 +394,9 @@ validate_subnet() {
     if [[ "${BASH_REMATCH[4]}" -eq 0 ]] || [[ "${BASH_REMATCH[4]}" -eq 255 ]]; then
         die "Invalid subnet: '$subnet'. Last octet cannot be 0 (network address) or 255 (broadcast)."
     fi
+    if [[ "${BASH_REMATCH[4]}" -ne 1 ]]; then
+        die "Invalid subnet: '$subnet'. Last octet must be 1 (server address in subnet)."
+    fi
 }
 
 validate_cidr_list() {
@@ -485,7 +488,7 @@ generate_awg_params() {
 
     AWG_Jc=$(rand_range 4 8)
     AWG_Jmin=$(rand_range 40 89)
-    AWG_Jmax=$(( AWG_Jmin + $(rand_range 100 999) ))
+    AWG_Jmax=$(( AWG_Jmin + $(rand_range 100 500) ))
     AWG_S1=$(rand_range 15 150)
     AWG_S2=$(rand_range 15 150)
 
