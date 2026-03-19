@@ -38,7 +38,10 @@ This is a supplement to the main [README.en.md](README.en.md), containing deeper
 - [📊 Traffic Statistics (stats)](#stats-adv)
 - [⏳ Temporary Clients (--expires)](#expires-adv)
 - [📱 vpn:// URI Import](#vpnuri-adv)
+- [📱 MTU and Mobile Clients](#mtu-mobile-adv)
+- [📋 AWG 2.0 Client Compatibility](#client-compat-adv)
 - [🐧 Debian Support](#debian-support-adv)
+- [⚠️ Known Limitations](#limitations-adv)
 - [🤝 Contributing](#contributing-adv)
 - [💖 Acknowledgements](#thanks-adv)
 
@@ -529,6 +532,21 @@ chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
 </details>
 
 <details>
+  <summary><strong>Q: Smartphone doesn't connect over cellular / doesn't work on iPhone</strong></summary>
+  <b>A:</b> Add <code>MTU = 1280</code> to the <code>[Interface]</code> section of both server and client configs. Cellular networks have lower MTU than the default 1420, and iOS is strict about PMTU. See <a href="#mtu-mobile-adv">MTU and Mobile Clients</a> for details.
+</details>
+
+<details>
+  <summary><strong>Q: Does AmneziaWG work in an LXC container?</strong></summary>
+  <b>A:</b> No. AmneziaWG requires loading a kernel module via DKMS. LXC containers share the host kernel and cannot load custom modules. Use a full VM (KVM/QEMU) or bare-metal.
+</details>
+
+<details>
+  <summary><strong>Q: Which client should I use for AWG 2.0?</strong></summary>
+  <b>A:</b> Recommended: <a href="https://github.com/amnezia-vpn/amnezia-client/releases">Amnezia VPN</a> (version >= 4.8.12.7). Native AmneziaWG clients for Android and iOS also work. The standard WireGuard client <b>does not</b> support AWG parameters. See <a href="#client-compat-adv">AWG 2.0 Client Compatibility</a> for the full table.
+</details>
+
+<details>
   <summary><strong>Q: How do I limit bandwidth for clients?</strong></summary>
   <b>A:</b> AmneziaWG has no built-in bandwidth limiting. Use <code>tc</code> (traffic control): <code>sudo tc qdisc add dev awg0 root tbf rate 100mbit burst 32kbit latency 400ms</code>. This limits total interface throughput. For per-client limits, a more complex setup with <code>tc</code> and <code>iptables</code> (mark + class) is required.
 </details>
@@ -687,6 +705,59 @@ When a client is created, a `.vpnuri` file is automatically generated with a `vp
 
 ---
 
+<a id="mtu-mobile-adv"></a>
+## 📱 MTU and Mobile Clients
+
+Smartphones connecting over cellular networks can have issues: the connection establishes but traffic doesn't flow. iPhones are particularly affected and may fail to connect entirely.
+
+**Causes:**
+
+1. **High tunnel MTU.** WireGuard defaults to MTU 1420. Cellular networks (4G/LTE) often have a lower effective MTU, causing packet fragmentation or drops. iOS is strict about Path MTU Discovery.
+
+2. **Large junk packets.** The Jmax parameter can reach ~1000 bytes. Combined with MTU 1420 over cellular, packets may not get through.
+
+**Solution:**
+
+Add `MTU = 1280` to the `[Interface]` section of both server and client configs:
+
+```ini
+[Interface]
+PrivateKey = ...
+Address = 10.9.9.2/32
+DNS = 1.1.1.1
+MTU = 1280
+```
+
+1280 is the minimum IPv6 MTU (RFC 8200), guaranteed to pass through any network. The speed impact is minimal (slightly more packets due to smaller payload).
+
+> **Note:** vpn:// URIs for Amnezia Client already set MTU = 1280 by default. The issue only appears when using `.conf` files with the native AmneziaWG client on a smartphone.
+
+After changing MTU, restart the service:
+
+```bash
+sudo systemctl restart awg-quick@awg0
+```
+
+---
+
+<a id="client-compat-adv"></a>
+## 📋 AWG 2.0 Client Compatibility
+
+Not all clients support AWG 2.0. Check compatibility before choosing a client:
+
+| Client | Platform | AWG 1.x | AWG 2.0 | Notes |
+|--------|----------|---------|---------|-------|
+| [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client/releases) | Windows, macOS, Linux, Android, iOS | ✅ | ✅ (>= 4.8.12.7) | Recommended. Supports vpn:// URI import |
+| [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-android) | Android | ✅ | ✅ | Native WG client with AWG support. Uses `.conf` files |
+| [AmneziaWG](https://apps.apple.com/app/amneziawg/id6478942365) | iOS | ✅ | ✅ | Native WG client for iOS |
+| [WireSock VPN Client](https://www.ntkernel.com) | Windows | ✅ | ✅ | Commercial. Userspace WireGuard via NDISAPI |
+| amneziawg-windows-client | Windows | ✅ | ❌ | AWG 1.x only! Shows "Invalid key: S3" error |
+| Standard WireGuard | All | ❌ | ❌ | Does not support AWG parameters |
+
+> If a client shows an error about an unknown parameter (S3, S4, I1, or H1 as a range), use one of the first four clients in the table.
+
+---
+
 <a id="debian-support-adv"></a>
 ## 🐧 Debian Support
 
@@ -713,6 +784,21 @@ apt-get update && apt-get install -y curl
 **Expected warnings:**
 
 During installation on Debian, you may see a `sudo removal refused` warning — this is normal, as Debian uses `sudo` as a system package and the script correctly skips its removal.
+
+---
+
+<a id="limitations-adv"></a>
+## ⚠️ Known Limitations
+
+* **LXC containers are not supported.** AmneziaWG requires a kernel module (DKMS). LXC shares the host kernel — loading a custom module from inside a container is not possible. Use a full VM or bare-metal server.
+
+* **Assumes a dedicated server.** The script configures UFW, Fail2Ban, sysctl and optimizes the system for VPN. On servers running other services, use `--no-tweaks` to skip hardening.
+
+* **MTU is not set in .conf by default.** For mobile clients, manually add `MTU = 1280` (see [MTU and Mobile Clients](#mtu-mobile-adv)).
+
+* **Single AWG protocol version per server.** All clients share the same obfuscation parameters. You cannot have some clients on AWG 1.x and others on 2.0 simultaneously.
+
+* **Ubuntu 25.10 / Debian 13:** The PPA may not have prebuilt packages. The installer builds the module from source via DKMS, which takes longer on first install.
 
 ---
 
