@@ -120,9 +120,10 @@ All parameters are accepted automatically. Details: [ADVANCED.en.md#cli-params-a
 > ⚠️ **Non-standard SSH port:** If SSH is not on port 22, run `sudo ufw allow YOUR_PORT/tcp` **before** starting the installer, otherwise you will lose access to the server.
 
 **Clients:**
-* **All platforms:** [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client/releases) **>= 4.8.12.7** — full-featured VPN client with AWG 2.0. Import via `vpn://` URI or `.conf` files
+* **All platforms:** [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client/releases) **>= 4.8.12.7** — full-featured VPN client with AWG 2.0. Import via `vpn://` URI
+* **Windows:** [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-windows-client/releases) **>= 2.0.0** — lightweight tunnel manager with AWG 2.0. Import via `.conf` files
 
-> ⚠️ Standalone `amneziawg-windows-client` **does not support AWG 2.0** ("Invalid key: S3" error). Use Amnezia VPN instead. [Compatibility table →](ADVANCED.en.md#client-compat-adv)
+> [Full client compatibility table →](ADVANCED.en.md#client-compat-adv)
 
 ---
 
@@ -418,7 +419,7 @@ For the changelog, see **[CHANGELOG.en.md](CHANGELOG.en.md)**.
 |---------|-------------|
 | [Junker](https://spatiumstas.github.io/junker/) | AmneziaWG signature generator by @spatiumstas — for manual setup without an installer script |
 | [Amnezia VPN Client](https://github.com/amnezia-vpn/amnezia-client) | Official client with AWG 2.0 support (>= 4.8.12.7) |
-| [AmneziaWG for Windows](https://github.com/amnezia-vpn/amneziawg-windows-client) | Lightweight tunnel manager for Windows (⚠️ AWG 1.x only) |
+| [AmneziaWG for Windows](https://github.com/amnezia-vpn/amneziawg-windows-client) | Lightweight tunnel manager for Windows with AWG 2.0 (>= 2.0.0) |
 | [AmneziaWG-Architect](https://vadim-khristenko.github.io/AmneziaWG-Architect/) | CPS/mimicry generator UI for AWG 2.0 by @Vadim-Khristenko ([GitHub](https://github.com/Vadim-Khristenko/AmneziaWG-Architect)) |
 
 ---
