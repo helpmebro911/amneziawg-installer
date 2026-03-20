@@ -14,6 +14,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.7.4] — 2026-03-20
+
+### Fixed
+
+- **MTU 1280 by default (Closes #26):** Server and client configs now include `MTU = 1280`. Fixes smartphone connectivity over cellular networks and on iPhone.
+- **Jmax cap:** Maximum junk packet size capped at `Jmin+500` (was `Jmin+999`). Prevents fragmentation with MTU 1280.
+- **validate_subnet:** Last subnet octet must be 1 (server address). Previously allowed arbitrary values, causing conflicts with `get_next_client_ip`.
+- **awg show dump parsing:** Interface line skipped via `tail -n +2` instead of unreliable empty psk field check.
+- **manage help without AWG:** `help` and empty command show usage before `check_dependencies`, allowing `--help` without AWG installed.
+- **help text:** Installer help now lists all 4 supported OS (Ubuntu 24.04/25.10, Debian 12/13).
+- **manage --expires help:** Added `4w` format to `--expires` help text (already supported by parser, but missing from help).
+
+### Improved
+
+- **IP caching:** `get_server_public_ip()` caches the result — repeated calls (add/regen) skip external service requests.
+- **O(N) IP lookup:** `get_next_client_ip()` uses an associative array for free IP lookup instead of O(N²) nested loops.
+
+### Documentation
+
+- Fixed client compatibility table: `amneziawg-windows-client >= 2.0.0` supports AWG 2.0 (previously incorrectly listed as AWG 1.x only).
+- Fixed APT format for Ubuntu 24.04: DEB822 `.sources` (was `.list`).
+- Fixed `restore` example in migration FAQ: correct path `/root/awg/backups/`.
+- Fixed uninstall reference in EN README FAQ: `install_amneziawg_en.sh`.
+- Added Ubuntu 25.10 to the "Which hosting?" FAQ answer.
+- Updated config examples: added `MTU = 1280`.
+- Updated Jmax range in parameters table: `+500` instead of `+999`.
+- Rewrote MTU section: automatic for v5.7.4+, manual workaround for older versions.
+- Removed "MTU not set" from Known Limitations.
+- Updated "How to change MTU?" FAQ for automatic MTU.
+
+---
+
 ## [5.7.3] — 2026-03-18
 
 ### Fixed
