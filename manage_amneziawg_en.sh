@@ -8,14 +8,14 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 peer management script
 # Author: @bivlked
-# Version: 5.7.7
+# Version: 5.7.8
 # Date: 2026-03-24
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Safe mode and Constants ---
 # shellcheck disable=SC2034
-SCRIPT_VERSION="5.7.7"
+SCRIPT_VERSION="5.7.8"
 set -o pipefail
 AWG_DIR="/root/awg"
 SERVER_CONF_FILE="/etc/amnezia/amneziawg/awg0.conf"
@@ -722,7 +722,7 @@ usage() {
     echo "  --server-conf=PATH    Specify server config file"
     echo ""
     echo "Commands:"
-    echo "  add <name> [--expires=DURATION]  Add a client (with optional expiry)"
+    echo "  add <name> [name2 ...]       Add client(s). --expires applies to all"
     echo "  remove <name>         Remove a client"
     echo "  list [-v]             List clients"
     echo "  stats [--json]        Client traffic statistics"
@@ -754,31 +754,39 @@ _cmd_rc=0
 
 case $COMMAND in
     add)
-        [[ -z "$CLIENT_NAME" ]] && die "Client name not specified."
-        validate_client_name "$CLIENT_NAME" || exit 1
+        [[ ${#ARGS[@]} -eq 0 ]] && die "Client name not specified."
 
-        if grep -qxF "#_Name = ${CLIENT_NAME}" "$SERVER_CONF_FILE"; then
-            die "Client '$CLIENT_NAME' already exists."
-        fi
+        _added=0
+        for _cname in "${ARGS[@]}"; do
+            validate_client_name "$_cname" || { _cmd_rc=1; continue; }
 
-        log "Adding '$CLIENT_NAME'..."
-        if generate_client "$CLIENT_NAME"; then
-            log_debug "Peer '$CLIENT_NAME' added to server config."
-            log "Client '$CLIENT_NAME' added."
-            log "Files: $AWG_DIR/${CLIENT_NAME}.conf, $AWG_DIR/${CLIENT_NAME}.png"
-            if [[ -f "$AWG_DIR/${CLIENT_NAME}.vpnuri" ]]; then
-                log "vpn:// URI: $AWG_DIR/${CLIENT_NAME}.vpnuri"
-                log "To import into Amnezia Client, copy the contents of the .vpnuri file"
+            if grep -qxF "#_Name = ${_cname}" "$SERVER_CONF_FILE"; then
+                log_warn "Client '$_cname' already exists, skipping."
+                continue
             fi
-            if [[ -n "$EXPIRES_DURATION" ]]; then
-                if set_client_expiry "$CLIENT_NAME" "$EXPIRES_DURATION"; then
-                    install_expiry_cron
+
+            log "Adding '$_cname'..."
+            if generate_client "$_cname"; then
+                log "Client '$_cname' added."
+                log "Files: $AWG_DIR/${_cname}.conf, $AWG_DIR/${_cname}.png"
+                if [[ -f "$AWG_DIR/${_cname}.vpnuri" ]]; then
+                    log "vpn:// URI: $AWG_DIR/${_cname}.vpnuri"
                 fi
+                if [[ -n "$EXPIRES_DURATION" ]]; then
+                    if set_client_expiry "$_cname" "$EXPIRES_DURATION"; then
+                        install_expiry_cron
+                    fi
+                fi
+                ((_added++))
+            else
+                log_error "Error adding client '$_cname'."
+                _cmd_rc=1
             fi
+        done
+
+        if [[ $_added -gt 0 ]]; then
             apply_config
-        else
-            log_error "Error adding client '$CLIENT_NAME'."
-            _cmd_rc=1
+            log "Clients added: $_added. Configuration applied."
         fi
         ;;
 

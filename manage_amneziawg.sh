@@ -8,14 +8,14 @@ fi
 # ==============================================================================
 # Скрипт для управления пользователями (пирами) AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.7.7
+# Версия: 5.7.8
 # Дата: 2026-03-24
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Безопасный режим и Константы ---
 # shellcheck disable=SC2034
-SCRIPT_VERSION="5.7.7"
+SCRIPT_VERSION="5.7.8"
 set -o pipefail
 AWG_DIR="/root/awg"
 SERVER_CONF_FILE="/etc/amnezia/amneziawg/awg0.conf"
@@ -722,7 +722,7 @@ usage() {
     echo "  --server-conf=ПУТЬ    Указать файл конфига сервера"
     echo ""
     echo "Команды:"
-    echo "  add <имя> [--expires=ВРЕМЯ]  Добавить клиента (с опц. сроком действия)"
+    echo "  add <имя> [имя2 ...]        Добавить клиента(ов). --expires применяется ко всем"
     echo "  remove <имя>          Удалить клиента"
     echo "  list [-v]             Показать список клиентов"
     echo "  stats [--json]        Статистика трафика по клиентам"
@@ -754,31 +754,39 @@ _cmd_rc=0
 
 case $COMMAND in
     add)
-        [[ -z "$CLIENT_NAME" ]] && die "Не указано имя клиента."
-        validate_client_name "$CLIENT_NAME" || exit 1
+        [[ ${#ARGS[@]} -eq 0 ]] && die "Не указано имя клиента."
 
-        if grep -qxF "#_Name = ${CLIENT_NAME}" "$SERVER_CONF_FILE"; then
-            die "Клиент '$CLIENT_NAME' уже существует."
-        fi
+        _added=0
+        for _cname in "${ARGS[@]}"; do
+            validate_client_name "$_cname" || { _cmd_rc=1; continue; }
 
-        log "Добавление '$CLIENT_NAME'..."
-        if generate_client "$CLIENT_NAME"; then
-            log_debug "Пир '$CLIENT_NAME' добавлен в серверный конфиг."
-            log "Клиент '$CLIENT_NAME' добавлен."
-            log "Файлы: $AWG_DIR/${CLIENT_NAME}.conf, $AWG_DIR/${CLIENT_NAME}.png"
-            if [[ -f "$AWG_DIR/${CLIENT_NAME}.vpnuri" ]]; then
-                log "vpn:// URI: $AWG_DIR/${CLIENT_NAME}.vpnuri"
-                log "Для импорта в Amnezia Client скопируйте содержимое файла .vpnuri"
+            if grep -qxF "#_Name = ${_cname}" "$SERVER_CONF_FILE"; then
+                log_warn "Клиент '$_cname' уже существует, пропуск."
+                continue
             fi
-            if [[ -n "$EXPIRES_DURATION" ]]; then
-                if set_client_expiry "$CLIENT_NAME" "$EXPIRES_DURATION"; then
-                    install_expiry_cron
+
+            log "Добавление '$_cname'..."
+            if generate_client "$_cname"; then
+                log "Клиент '$_cname' добавлен."
+                log "Файлы: $AWG_DIR/${_cname}.conf, $AWG_DIR/${_cname}.png"
+                if [[ -f "$AWG_DIR/${_cname}.vpnuri" ]]; then
+                    log "vpn:// URI: $AWG_DIR/${_cname}.vpnuri"
                 fi
+                if [[ -n "$EXPIRES_DURATION" ]]; then
+                    if set_client_expiry "$_cname" "$EXPIRES_DURATION"; then
+                        install_expiry_cron
+                    fi
+                fi
+                ((_added++))
+            else
+                log_error "Ошибка добавления клиента '$_cname'."
+                _cmd_rc=1
             fi
+        done
+
+        if [[ $_added -gt 0 ]]; then
             apply_config
-        else
-            log_error "Ошибка добавления клиента '$CLIENT_NAME'."
-            _cmd_rc=1
+            log "Добавлено клиентов: $_added. Конфигурация применена."
         fi
         ;;
 

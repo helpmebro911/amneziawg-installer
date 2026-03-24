@@ -14,6 +14,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.7.8] — 2026-03-24
+
+### Added
+
+- **Batch add clients (#29):** `manage add client1 client2 client3 ...` — create multiple clients in one command. `awg syncconf` is called once at the end instead of N times. Prevents kernel panic during mass client creation (upstream bug [amneziawg-linux-kernel-module#146](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module/issues/146)).
+
+---
+
 ## [5.7.7] — 2026-03-24
 
 ### Fixed
@@ -343,7 +351,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Diagnostic report (`--diagnostic`).
 - Full uninstall (`--uninstall`).
 
-[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.7...HEAD
+[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.8...HEAD
+[5.7.8]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.7...v5.7.8
 [5.7.7]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.6...v5.7.7
 [5.7.6]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.5...v5.7.6
 [5.7.5]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.4...v5.7.5

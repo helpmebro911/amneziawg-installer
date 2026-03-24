@@ -14,6 +14,14 @@
 
 ---
 
+## [5.7.8] — 2026-03-24
+
+### Добавлено
+
+- **Batch add клиентов (#29):** `manage add client1 client2 client3 ...` — создание нескольких клиентов одной командой. `awg syncconf` вызывается один раз в конце вместо N раз. Предотвращает kernel panic при массовом создании клиентов (upstream баг модуля [amneziawg-linux-kernel-module#146](https://github.com/amnezia-vpn/amneziawg-linux-kernel-module/issues/146)).
+
+---
+
 ## [5.7.7] — 2026-03-24
 
 ### Исправлено
@@ -343,7 +351,8 @@
 - Диагностический отчет (`--diagnostic`).
 - Полная деинсталляция (`--uninstall`).
 
-[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.7...HEAD
+[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.8...HEAD
+[5.7.8]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.7...v5.7.8
 [5.7.7]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.6...v5.7.7
 [5.7.6]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.5...v5.7.6
 [5.7.5]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.4...v5.7.5
