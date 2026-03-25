@@ -3,7 +3,7 @@
 # ==============================================================================
 # Общая библиотека функций для AmneziaWG 2.0
 # Автор: @bivlked
-# Версия: 5.7.8
+# Версия: 5.7.9
 # Дата: 2026-03-24
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
@@ -19,7 +19,7 @@ CONFIG_FILE="${CONFIG_FILE:-$AWG_DIR/awgsetup_cfg.init}"
 SERVER_CONF_FILE="${SERVER_CONF_FILE:-/etc/amnezia/amneziawg/awg0.conf}"
 KEYS_DIR="${KEYS_DIR:-$AWG_DIR/keys}"
 # shellcheck disable=SC2034
-AWG_COMMON_VERSION="5.7.8"
+AWG_COMMON_VERSION="5.7.9"
 
 # --- Автоочистка временных файлов ---
 # ВАЖНО: trap НЕ устанавливается здесь, чтобы не перезаписать trap вызывающего скрипта.
@@ -107,7 +107,7 @@ safe_load_config() {
                 OS_ID|OS_VERSION|OS_CODENAME|AWG_PORT|AWG_TUNNEL_SUBNET|\
                 DISABLE_IPV6|ALLOWED_IPS_MODE|ALLOWED_IPS|AWG_ENDPOINT|\
                 AWG_Jc|AWG_Jmin|AWG_Jmax|AWG_S1|AWG_S2|AWG_S3|AWG_S4|\
-                AWG_H1|AWG_H2|AWG_H3|AWG_H4|AWG_I1|NO_TWEAKS)
+                AWG_H1|AWG_H2|AWG_H3|AWG_H4|AWG_I1|NO_TWEAKS|AWG_APPLY_MODE)
                     export "$key=$value"
                     ;;
             esac
@@ -357,10 +357,19 @@ EOF
 # Применение конфигурации (syncconf)
 # ==============================================================================
 
-# Применение изменений конфигурации без разрыва туннеля
-# Использует awg syncconf для zero-downtime обновления пиров
-# Fallback на полный перезапуск при ошибке
+# Применение изменений конфигурации
+# Режим syncconf (по умолчанию): zero-downtime обновление пиров
+# Режим restart: полный перезапуск (обход upstream deadlock amneziawg-linux-kernel-module#146)
+# Управление: AWG_APPLY_MODE=syncconf|restart (конфиг или --apply-mode CLI)
 apply_config() {
+    if [[ "${AWG_APPLY_MODE:-syncconf}" == "restart" ]]; then
+        log "Перезапуск сервиса (apply-mode=restart)..."
+        local rc=0
+        systemctl restart awg-quick@awg0 2>/dev/null; rc=$?
+        [[ $rc -ne 0 ]] && log_warn "Ошибка перезапуска."
+        return $rc
+    fi
+
     local strip_out rc=0
     strip_out=$(timeout 10 awg-quick strip awg0 2>/dev/null) || {
         log_warn "awg-quick strip не удался или timeout, использую полный перезапуск."
