@@ -14,13 +14,14 @@
 
 ---
 
-## [5.7.10] — 2026-03-30
+## [5.7.10] — 2026-03-31
 
 ### Добавлено
 
 - **Batch remove клиентов (#30):** `manage remove client1 client2 client3` — удаление нескольких клиентов одной командой с одним apply_config в конце.
-- **AWG_SKIP_APPLY=1 (#30):** Переменная среды для пропуска apply_config. Позволяет накопить изменения и применить одной командой — для автоматизации и API-интеграций.
+- **AWG_SKIP_APPLY=1 (#30):** Переменная среды для пропуска apply_config. Позволяет накопить изменения и применить одной командой — для автоматизации и API-интеграций. Корректное сообщение "Применение отложено" вместо "Конфигурация применена".
 - **flock в apply_config (#30):** Межпроцессная блокировка (`${AWG_DIR}/.awg_apply.lock`) предотвращает параллельные restart/syncconf вызовы.
+- **Unit тесты (bats-core):** 43 теста для awg_common.sh — parse_duration, safe_load_config, IP allocation, peer management, apply_config modes, validate. CI workflow `.github/workflows/test.yml`.
 
 ---
 

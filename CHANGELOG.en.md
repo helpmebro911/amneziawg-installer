@@ -14,13 +14,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [5.7.10] — 2026-03-30
+## [5.7.10] — 2026-03-31
 
 ### Added
 
 - **Batch remove clients (#30):** `manage remove client1 client2 client3` — remove multiple clients in one command with a single apply_config at the end.
-- **AWG_SKIP_APPLY=1 (#30):** Environment variable to skip apply_config entirely. Allows accumulating changes and applying once — for automation and API integrations.
+- **AWG_SKIP_APPLY=1 (#30):** Environment variable to skip apply_config entirely. Allows accumulating changes and applying once — for automation and API integrations. Correct "Apply deferred" message instead of "Configuration applied".
 - **flock in apply_config (#30):** Inter-process lock (`${AWG_DIR}/.awg_apply.lock`) prevents concurrent restart/syncconf calls.
+- **Unit tests (bats-core):** 43 tests for awg_common.sh — parse_duration, safe_load_config, IP allocation, peer management, apply_config modes, validate. CI workflow `.github/workflows/test.yml`.
 
 ---
 

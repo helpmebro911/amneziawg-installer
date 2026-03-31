@@ -326,6 +326,13 @@ Options:
   --apply-mode=MODE     syncconf (default) or restart (bypass kernel panic)
 ```
 
+**Environment variables:**
+
+| Variable | Description |
+|----------|-------------|
+| `AWG_SKIP_APPLY=1` | Skip apply_config. For automation: accumulate N operations, apply once |
+| `AWG_APPLY_MODE=restart` | Full restart instead of syncconf (can be saved in `awgsetup_cfg.init`) |
+
 ---
 
 <a id="manage-commands-adv"></a>

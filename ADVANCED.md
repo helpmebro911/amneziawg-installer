@@ -326,6 +326,13 @@ PersistentKeepalive = 33
   --apply-mode=РЕЖИМ    syncconf (умолч.) или restart (обход kernel panic)
 ```
 
+**Переменные среды:**
+
+| Переменная | Описание |
+|------------|----------|
+| `AWG_SKIP_APPLY=1` | Пропустить apply_config. Для автоматизации: накопить N операций, применить одной командой |
+| `AWG_APPLY_MODE=restart` | Полный перезапуск вместо syncconf (можно сохранить в `awgsetup_cfg.init`) |
+
 ---
 
 <a id="manage-commands-adv"></a>
