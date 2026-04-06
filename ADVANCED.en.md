@@ -170,6 +170,7 @@ File: `/etc/sysctl.d/99-amneziawg-security.conf`. Includes:
 
 * Automatically installed and configured for SSH protection.
 * **Settings:** Ban via `ufw`, 5 attempts → 1-hour ban.
+* **Debian:** Automatically uses `backend = systemd` (journald). Ubuntu uses `backend = auto`.
 * **Check:** `sudo fail2ban-client status sshd`.
 
 #### Safe Configuration Loading (v5.7.2)
