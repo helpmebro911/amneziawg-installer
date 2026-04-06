@@ -9,7 +9,7 @@ fi
 # AmneziaWG 2.0 installation and configuration script for Ubuntu/Debian servers
 # Author: @bivlked
 # Version: 5.7.12
-# Date: 2026-03-31
+# Date: 2026-04-06
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
