@@ -454,6 +454,8 @@ sudo bash /root/awg/manage_amneziawg.sh restart              # Перезапу�
 |--------|-----------|----------|
 | [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client) | Windows, macOS, Linux, Android, iOS | Официальный полнофункциональный клиент с AWG 2.0 (>= 4.8.12.7) |
 | [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-windows-client) | Windows | Легковесный tunnel manager с AWG 2.0 (>= 2.0.0) |
+| [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-android) | Android | Легковесный tunnel manager с AWG 2.0 (>= 2.0.0) |
+| [WG Tunnel](https://github.com/wgtunnel/android) | Android | FOSS-клиент WireGuard + AmneziaWG, auto-tunneling, F-Droid |
 | [VeilBox](https://github.com/artem4150/VeilBox) | Windows, macOS | Open-source клиент с поддержкой AmneziaWG и VLESS |
 
 ### Прошивки для роутеров

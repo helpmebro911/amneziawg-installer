@@ -454,6 +454,8 @@ For the changelog, see **[CHANGELOG.en.md](CHANGELOG.en.md)**.
 |---------|----------|-------------|
 | [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client) | Windows, macOS, Linux, Android, iOS | Official full-featured client with AWG 2.0 (>= 4.8.12.7) |
 | [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-windows-client) | Windows | Lightweight tunnel manager with AWG 2.0 (>= 2.0.0) |
+| [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-android) | Android | Lightweight tunnel manager with AWG 2.0 (>= 2.0.0) |
+| [WG Tunnel](https://github.com/wgtunnel/android) | Android | FOSS WireGuard + AmneziaWG client, auto-tunneling, F-Droid |
 | [VeilBox](https://github.com/artem4150/VeilBox) | Windows, macOS | Open-source client with AmneziaWG and VLESS support |
 
 ### Router Firmware
