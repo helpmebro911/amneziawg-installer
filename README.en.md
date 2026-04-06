@@ -441,22 +441,28 @@ For the changelog, see **[CHANGELOG.en.md](CHANGELOG.en.md)**.
 
 ## 🌐 Ecosystem
 
+### Clients
+
+> **Which client should I use?** Install [**Amnezia VPN**](https://github.com/amnezia-vpn/amnezia-client/releases) (>= 4.8.12.7) — works on all platforms, supports `vpn://` URI import.
+> For a lightweight connection (`.conf` import only), use **AmneziaWG** for your platform.
+
+| Client | Platform | AWG 2.0 | Type | Notes |
+|--------|----------|:-------:|------|-------|
+| **[Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client/releases)** | Windows, macOS, Linux, Android, iOS | ✅ >= 4.8.12.7 | Official | **Recommended.** Full-featured, `vpn://` URI |
+| [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-windows-client/releases) | Windows | ✅ >= 2.0.0 | Official | Lightweight tunnel manager, `.conf` import |
+| [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-android) | Android | ✅ >= 2.0.0 | Official | Lightweight tunnel manager, `.conf` import |
+| [AmneziaWG](https://apps.apple.com/app/amneziawg/id6478942365) | iOS | ✅ | Official | Lightweight tunnel manager, `.conf` import |
+| [WG Tunnel](https://github.com/wgtunnel/android) | Android | ⚠️ partial | Third-party, FOSS | Auto-tunneling, split tunnel, F-Droid |
+| [VeilBox](https://github.com/artem4150/VeilBox) | Windows, macOS | ✅ | Third-party, FOSS | Also supports VLESS |
+
+> [Full compatibility table with AWG 1.x details →](ADVANCED.en.md#client-compat-adv)
+
 ### Configuration Tools
 
 | Project | Description |
 |---------|-------------|
 | [Junker](https://spatiumstas.github.io/junker/) | AmneziaWG signature generator by @spatiumstas — for manual setup without an installer |
 | [AmneziaWG-Architect](https://vadim-khristenko.github.io/AmneziaWG-Architect/) | CPS/mimicry generator UI for AWG 2.0 by @Vadim-Khristenko ([GitHub](https://github.com/Vadim-Khristenko/AmneziaWG-Architect)) |
-
-### Clients
-
-| Project | Platform | Description |
-|---------|----------|-------------|
-| [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client) | Windows, macOS, Linux, Android, iOS | Official full-featured client with AWG 2.0 (>= 4.8.12.7) |
-| [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-windows-client) | Windows | Lightweight tunnel manager with AWG 2.0 (>= 2.0.0) |
-| [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-android) | Android | Lightweight tunnel manager with AWG 2.0 (>= 2.0.0) |
-| [WG Tunnel](https://github.com/wgtunnel/android) | Android | FOSS WireGuard + AmneziaWG client, auto-tunneling, F-Droid |
-| [VeilBox](https://github.com/artem4150/VeilBox) | Windows, macOS | Open-source client with AmneziaWG and VLESS support |
 
 ### Router Firmware
 
