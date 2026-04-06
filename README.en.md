@@ -3,6 +3,8 @@
   <b>RU</b> <a href="README.md">Русский</a> | <b>EN</b> English
 </p>
 
+<p align="center"><em>One-command VPN that works where WireGuard gets blocked — self-hosted on any $3 VPS</em></p>
+
 <p align="center">
   <img src="logo.jpg" alt="AmneziaWG 2.0 Installer" width="600">
 </p>
@@ -27,6 +29,7 @@
 
 <p align="center">
   <a href="#why">Why this project</a> •
+  <a href="#comparison">AWG vs WG</a> •
   <a href="#quickstart">Quick Start</a> •
   <a href="#features">Features</a> •
   <a href="#requirements">Requirements</a> •
@@ -47,6 +50,24 @@
 This set of scripts turns a clean VPS into a ready-to-use VPN server. No Linux knowledge required — the script configures the firewall, optimizes the system, and generates client configs and QR codes automatically.
 
 Works on Ubuntu 24.04/25.10 and Debian 12/13. Any cheap VPS with 1 GB RAM is enough.
+
+---
+
+<a id="comparison"></a>
+## ⚖️ AmneziaWG vs WireGuard
+
+| | WireGuard | AmneziaWG 2.0 |
+|---|---|---|
+| **DPI detection** | Fingerprinted by fixed packet sizes and magic bytes | Undetectable — randomized headers, padding, protocol mimicry |
+| **Blocked in** | China, Russia, Iran, UAE, Turkmenistan | Not blocked anywhere (April 2026) |
+| **Server setup** | Manual: keys, iptables, sysctl, systemd | One command, 20 min, fully automatic |
+| **Hardening** | DIY: UFW, Fail2Ban, sysctl | Automatic: firewall + brute-force protection + kernel tuning |
+| **Client management** | Edit configs by hand, restart | `add`/`remove`/`list`/`stats` with hot-reload |
+| **Temporary access** | Not built-in | `--expires=7d` with auto-cleanup |
+| **Server requirements** | — | Same — any $3-5/mo VPS, 1 GB RAM |
+| **Speed overhead** | Baseline | Negligible (<2%) |
+
+> If WireGuard works for you and isn't blocked — keep using it. If it's blocked or throttled — AmneziaWG 2.0 is the drop-in replacement.
 
 ---
 
@@ -418,14 +439,41 @@ For the changelog, see **[CHANGELOG.en.md](CHANGELOG.en.md)**.
 
 ---
 
-## 🔗 Related Tools
+## 🌐 Ecosystem
+
+### Configuration Tools
 
 | Project | Description |
 |---------|-------------|
-| [Junker](https://spatiumstas.github.io/junker/) | AmneziaWG signature generator by @spatiumstas — for manual setup without an installer script |
-| [Amnezia VPN Client](https://github.com/amnezia-vpn/amnezia-client) | Official client with AWG 2.0 support (>= 4.8.12.7) |
-| [AmneziaWG for Windows](https://github.com/amnezia-vpn/amneziawg-windows-client) | Lightweight tunnel manager for Windows with AWG 2.0 (>= 2.0.0) |
+| [Junker](https://spatiumstas.github.io/junker/) | AmneziaWG signature generator by @spatiumstas — for manual setup without an installer |
 | [AmneziaWG-Architect](https://vadim-khristenko.github.io/AmneziaWG-Architect/) | CPS/mimicry generator UI for AWG 2.0 by @Vadim-Khristenko ([GitHub](https://github.com/Vadim-Khristenko/AmneziaWG-Architect)) |
+
+### Clients
+
+| Project | Platform | Description |
+|---------|----------|-------------|
+| [Amnezia VPN](https://github.com/amnezia-vpn/amnezia-client) | Windows, macOS, Linux, Android, iOS | Official full-featured client with AWG 2.0 (>= 4.8.12.7) |
+| [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-windows-client) | Windows | Lightweight tunnel manager with AWG 2.0 (>= 2.0.0) |
+| [VeilBox](https://github.com/artem4150/VeilBox) | Windows, macOS | Open-source client with AmneziaWG and VLESS support |
+
+### Router Firmware
+
+| Project | Platform | Description |
+|---------|----------|-------------|
+| [AWG Manager](https://github.com/hoaxisr/awg-manager) | Keenetic (Entware) | Web UI for managing AWG tunnels on Keenetic routers |
+| [AmneziaWG for Merlin](https://github.com/r0otx/asuswrt-merlin-amneziawg) | ASUS (Asuswrt-Merlin) | AWG 2.0 addon with web UI, GeoIP/GeoSite routing |
+
+<a id="featured-in"></a>
+<details>
+<summary><strong>📰 Featured in</strong></summary>
+
+- [XDA Developers — «I found a self-hosted VPN that works where WireGuard gets blocked»](https://www.xda-developers.com/self-hosted-vpn-works-where-wireguard-gets-blocked/)
+- [Pinggy — Top 5 Best Self-Hosted VPNs in 2026](https://pinggy.io/blog/top_5_best_self_hosted_vpns/)
+- [gHacks Tech News — AmneziaWG 2.0](https://www.ghacks.net/2026/03/25/amnezia-releases-amneziawg-2-0-to-bypass-advanced-internet-censorship-systems/)
+- [Debian Forums — HowTo: Install AmneziaWG 2.0 on Debian 12/13](https://forums.debian.net/viewtopic.php?t=166105)
+- [Qubes OS Forum — AmneziaWG for censored regions](https://forum.qubes-os.org/t/installation-of-amnezia-vpn-and-amnezia-wg-effective-tools-against-internet-blocks-via-dpi-for-china-russia-belarus-turkmenistan-iran-vpn-with-vless-xray-reality-best-obfuscation-for-wireguard-easy-self-hosted-vpn-bypass/39005)
+
+</details>
 
 ---
 

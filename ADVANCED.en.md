@@ -756,6 +756,7 @@ Not all clients support AWG 2.0. Check compatibility before choosing a client:
 | Project | Platform | Description |
 |---------|----------|-------------|
 | [AWG Manager](https://github.com/hoaxisr/awg-manager) | Keenetic (Entware) | Web interface for managing AWG tunnels on Keenetic routers |
+| [AmneziaWG for Merlin](https://github.com/r0otx/asuswrt-merlin-amneziawg) | ASUS (Asuswrt-Merlin) | AWG 2.0 addon with web UI, GeoIP/GeoSite routing |
 
 ---
 
