@@ -485,19 +485,35 @@ rand_range() {
 # Сортировка гарантирует low ≤ high и непересечение между парами.
 # Минимальная ширина каждого диапазона = 1000 (для нормальной обфускации).
 # Печатает 4 строки формата "low-high" в stdout.
-# Возвращает 1 если за 20 попыток не удалось получить корректные диапазоны
-# (вероятность близка к нулю при равномерном uint32 распределении).
+# Возвращает 1 если за 20 попыток не удалось получить корректные диапазоны.
+#
+# Оптимизация: один вызов `od -N32 -tu4` читает 32 байта = 8 uint32 значений
+# одной операцией, вместо 8 отдельных subprocess через rand_range.
+# Fallback на rand_range если /dev/urandom недоступен.
 generate_awg_h_ranges() {
     local attempt=0 max_attempts=20
     while (( attempt < max_attempts )); do
-        local p1 p2 p3 p4 p5 p6 p7 p8 sorted
-        p1=$(rand_range 0 4294967295); p2=$(rand_range 0 4294967295)
-        p3=$(rand_range 0 4294967295); p4=$(rand_range 0 4294967295)
-        p5=$(rand_range 0 4294967295); p6=$(rand_range 0 4294967295)
-        p7=$(rand_range 0 4294967295); p8=$(rand_range 0 4294967295)
-        sorted=$(printf '%s\n' "$p1" "$p2" "$p3" "$p4" "$p5" "$p6" "$p7" "$p8" | sort -n)
-        local arr=()
-        while IFS= read -r _line; do arr+=("$_line"); done <<< "$sorted"
+        local raw arr=() _v
+        raw=$(od -An -N32 -tu4 /dev/urandom 2>/dev/null | tr -s ' \n' '\n' | sed '/^$/d')
+        if [[ -n "$raw" ]]; then
+            local count=0
+            while IFS= read -r _v; do
+                [[ "$_v" =~ ^[0-9]+$ ]] || continue
+                arr+=("$_v"); count=$((count + 1))
+                (( count == 8 )) && break
+            done <<< "$raw"
+        fi
+        if (( ${#arr[@]} != 8 )); then
+            arr=()
+            local _i
+            for _i in 1 2 3 4 5 6 7 8; do
+                arr+=("$(rand_range 0 4294967295)")
+            done
+        fi
+        local sorted
+        sorted=$(printf '%s\n' "${arr[@]}" | sort -n)
+        arr=()
+        while IFS= read -r _v; do arr+=("$_v"); done <<< "$sorted"
         if (( ${arr[1]} - ${arr[0]} >= 1000 )) && \
            (( ${arr[3]} - ${arr[2]} >= 1000 )) && \
            (( ${arr[5]} - ${arr[4]} >= 1000 )) && \

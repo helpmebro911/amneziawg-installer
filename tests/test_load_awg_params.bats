@@ -122,3 +122,74 @@ CONF
     run load_awg_params
     [ "$status" -eq 0 ]
 }
+
+@test "load_awg_params: split-brain prevention — corrupt server_conf returns 1 even if init has values" {
+    # The exact scenario from the audit Findings.md #1:
+    # init file has GOOD (stale) values, server_conf exists but is missing
+    # required H4. Old behavior would silently fall back to init and pretend
+    # success — server runs new config, regen would emit clients old values.
+    # New behavior: error, return 1, no split-brain possible.
+    create_init_config
+    cat > "$SERVER_CONF_FILE" << 'CONF'
+[Interface]
+PrivateKey = TESTKEY
+Address = 10.9.9.1/24
+ListenPort = 39743
+Jc = 99
+Jmin = 200
+Jmax = 999
+S1 = 1
+S2 = 2
+S3 = 3
+S4 = 4
+H1 = 500-1500
+H2 = 2000-3000
+H3 = 4000-5000
+CONF
+    # H4 deliberately missing
+    run load_awg_params
+    [ "$status" -eq 1 ]
+}
+
+@test "load_awg_params: split-brain prevention — server_conf missing falls back to init (bootstrap)" {
+    # Counterpart to the previous test: when server_conf is missing entirely,
+    # init fallback IS allowed — this is the bootstrap path of first install.
+    create_init_config
+    rm -f "$SERVER_CONF_FILE"
+    run load_awg_params
+    [ "$status" -eq 0 ]
+}
+
+@test "load_awg_params_from_server_conf: atomic — partial corrupt config does not pollute env" {
+    # Init file has GOOD values
+    create_init_config
+    safe_load_config "$CONFIG_FILE"
+    # Sanity: init values loaded
+    [ "$AWG_Jc" = "6" ]
+    [ "$AWG_H4" = "100000000-800000000" ]
+
+    # Now write a CORRUPT server config — missing H2, H3, H4
+    cat > "$SERVER_CONF_FILE" << 'CONF'
+[Interface]
+PrivateKey = TESTKEY
+Address = 10.9.9.1/24
+ListenPort = 39743
+Jc = 99
+Jmin = 200
+Jmax = 999
+S1 = 1
+S2 = 2
+S3 = 3
+S4 = 4
+H1 = 500-1500
+CONF
+    # Atomic: should return 1 because H2-H4 missing
+    run load_awg_params_from_server_conf "$SERVER_CONF_FILE"
+    [ "$status" -eq 1 ]
+
+    # CRITICAL: env must NOT be partially polluted with new Jc/H1
+    # The init values must remain intact
+    [ "$AWG_Jc" = "6" ]
+    [ "$AWG_H1" = "100000-800000" ]
+    [ "$AWG_H4" = "100000000-800000000" ]
+}
