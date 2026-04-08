@@ -62,10 +62,10 @@ Major security and reliability update after several consecutive code audits. The
 
 ### Tests
 
-- **74 bats tests** (+28 from 5.7.12 baseline):
+- **80 bats tests** (+34 from the 5.7.12 baseline of 46 tests):
   - `test_h_ranges.bats` — 9 H1-H4 generation checks
   - `test_load_awg_params.bats` — 14 awg0.conf parser, init-file priority, split-brain prevention, atomic export, bootstrap path checks
-  - `test_validate_endpoint.bats` — 8 validate_endpoint checks (valid FQDN/IPv4/IPv6, reject newline/CR/quotes/space/backslash/empty)
+  - `test_validate_endpoint.bats` — 14 validate_endpoint checks (valid FQDN/IPv4/IPv6, reject newline/CR/quotes/space/backslash/empty)
 - All 46 existing tests (apply_config, IP allocation, parse_duration, peer management, safe_load_config, validate) still pass without regressions.
 
 ### Documentation

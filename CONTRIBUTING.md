@@ -45,14 +45,20 @@ Before submitting a PR, ensure:
    done
    ```
 
-2. **ShellCheck** (version from Ubuntu repositories, typically >= 0.9.0) passes:
+2. **ShellCheck** (version from Ubuntu repositories, typically >= 0.9.0) passes with **zero warnings**:
    ```bash
    for f in install_amneziawg.sh install_amneziawg_en.sh manage_amneziawg.sh manage_amneziawg_en.sh awg_common.sh awg_common_en.sh; do
      shellcheck -s bash -S warning "$f"
    done
    ```
 
-3. **VPS testing** (for script changes): test on a clean server (Ubuntu 24.04 LTS or Debian 12/13 minimal). The full test matrix includes:
+3. **Unit tests (bats-core)** pass. Current expected baseline on `v5.8.0`: **80 tests**.
+   ```bash
+   bats tests/
+   ```
+   If you add a new function, add a corresponding test file (see `tests/test_*.bats` for the existing pattern). `test_helper.bash` provides common fixtures. Tests must pass on Linux with `flock` available; cross-platform edge cases use the `require_flock` skip helper where needed.
+
+4. **VPS testing** (for script changes): test on a clean server (Ubuntu 24.04 LTS or Debian 12/13 minimal). The full test matrix includes:
    - Fresh install on clean Ubuntu 24.04 LTS
    - Fresh install on clean Ubuntu 25.10
    - All management commands: add, remove, list, regen, check, restart
@@ -86,6 +92,35 @@ When modifying Russian scripts (`*.sh`), update the corresponding English versio
 - `install_amneziawg.sh` → `install_amneziawg_en.sh`
 
 Run `diff install_amneziawg.sh install_amneziawg_en.sh` to verify only text differences remain.
+
+Function counts and line counts should remain equal between the two language versions. Quick sanity check:
+
+```bash
+for pair in "install_amneziawg.sh install_amneziawg_en.sh" "awg_common.sh awg_common_en.sh" "manage_amneziawg.sh manage_amneziawg_en.sh"; do
+  set -- $pair
+  ru_funcs=$(grep -cE '^[a-zA-Z_][a-zA-Z0-9_]*\(\)' "$1")
+  en_funcs=$(grep -cE '^[a-zA-Z_][a-zA-Z0-9_]*\(\)' "$2")
+  echo "$1: $ru_funcs funcs | $2: $en_funcs funcs"
+done
+```
+
+## Multilingual Documentation
+
+The same mirror rule applies to user-facing markdown documents:
+
+- `README.md` ↔ `README.en.md`
+- `ADVANCED.md` ↔ `ADVANCED.en.md`
+- `CHANGELOG.md` ↔ `CHANGELOG.en.md`
+
+When updating any of them, keep the following in sync between the two versions:
+
+- Section headings and order
+- Commands and code examples (identical — commands are bash)
+- Release facts: version numbers, test counts, supported distros
+- Internal links (each RU anchor should have an EN counterpart at the same place)
+- Tables (same rows and columns)
+
+Non-mirrored documents (`CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) are English-only by convention.
 
 ## Commit Messages
 

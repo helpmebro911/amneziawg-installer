@@ -439,12 +439,12 @@ graph TD
 
 Ключи клиентов хранятся в `/root/awg/keys/` (права 600). Серверные ключи — в `/root/awg/server_private.key` и `server_public.key`.
 
-#### Привязка URL к версии (v5.7.12)
+#### Привязка URL к версии (v5.7.2)
 
 Инсталлятор скачивает `awg_common.sh` и `manage_amneziawg.sh` с URL, привязанных к конкретному тегу версии:
 
 ```
-https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.7.12/awg_common.sh
+https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.0/awg_common.sh
 ```
 
 Это обеспечивает **supply chain pinning** — гарантию, что скачиваемые скрипты соответствуют версии инсталлятора, даже если `main` уже обновлён.
@@ -463,9 +463,13 @@ AWG_BRANCH=my-feature-branch sudo bash ./install_amneziawg.sh
 Для обновления скриптов управления и общей библиотеки **без переустановки сервера**:
 
 ```bash
-# Скачать обновлённые скрипты
-wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/manage_amneziawg.sh
-wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/main/awg_common.sh
+# Русская версия:
+wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.0/manage_amneziawg.sh
+wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.0/awg_common.sh
+
+# Английская версия:
+wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.0/manage_amneziawg_en.sh
+wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.0/awg_common_en.sh
 
 # Установить права
 chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
@@ -490,7 +494,7 @@ chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
 
 <details>
   <summary><strong>В: Как изменить MTU?</strong></summary>
-  **О:** Начиная с v5.7.12 `MTU = 1280` устанавливается автоматически. Для изменения: отредактируйте строку `MTU = <значение>` в секции `[Interface]` файла `/etc/amnezia/amneziawg/awg0.conf` и в `.conf` файлах клиентов. Перезапустите сервис. Подробнее — в разделе <a href="#mtu-mobile-adv">MTU и мобильные клиенты</a>.
+  **О:** Начиная с v5.7.4 `MTU = 1280` устанавливается автоматически. Для изменения: отредактируйте строку `MTU = <значение>` в секции `[Interface]` файла `/etc/amnezia/amneziawg/awg0.conf` и в `.conf` файлах клиентов. Перезапустите сервис. Подробнее — в разделе <a href="#mtu-mobile-adv">MTU и мобильные клиенты</a>.
 </details>
 
 <details>
@@ -553,6 +557,26 @@ chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
 <details>
   <summary><strong>В: Работает ли AmneziaWG в LXC-контейнере?</strong></summary>
   <b>О:</b> Нет. AmneziaWG требует загрузки ядерного модуля через DKMS. LXC-контейнеры разделяют ядро с хостом и не позволяют загружать свои модули. Используйте полноценную VM (KVM/QEMU) или bare-metal.
+</details>
+
+<details>
+  <summary><strong>В: <code>--endpoint</code> отклоняется с ошибкой «Некорректный --endpoint» — что проверить?</strong></summary>
+  <b>О:</b> С v5.8.0 значение флага <code>--endpoint</code> проходит валидацию перед записью в конфиги. Разрешены три формата: FQDN (<code>vpn.example.com</code>), IPv4 (<code>1.2.3.4</code>), IPv6 в квадратных скобках (<code>[2001:db8::1]</code>). Запрещены перевод строки, CR, одинарные и двойные кавычки, обратный слеш, пробелы и табуляции — они могли бы инжектиться в <code>awgsetup_cfg.init</code> и клиентские <code>.conf</code>. Если нужно передать IPv6 — оберните в <code>[]</code>. Если <code>AWG_ENDPOINT</code> в <code>awgsetup_cfg.init</code> не проходит валидацию при повторном запуске, инсталлятор выводит <code>log_warn</code> и использует автоопределение через <code>get_server_public_ip</code>.
+</details>
+
+<details>
+  <summary><strong>В: «Другой экземпляр install_amneziawg.sh уже запущен» — что это?</strong></summary>
+  <b>О:</b> С v5.8.0 инсталлятор берёт process-wide <code>flock</code> на <code>/root/awg/.install.lock</code> в начале <code>initialize_setup()</code>. Это защищает от двух параллельных запусков которые иначе могли бы гонять <code>apt-get</code> одновременно и сломать package state. Если ты видишь эту ошибку но никакого второго инсталлятора нет (процесс висит / упал) — удали <code>/root/awg/.install.lock</code> и попробуй снова.
+</details>
+
+<details>
+  <summary><strong>В: Почему <code>--uninstall</code> не отключил UFW?</strong></summary>
+  <b>О:</b> Это поведение с v5.8.0. Инсталлятор записывает маркер <code>/root/awg/.ufw_enabled_by_installer</code> <b>только если активировал UFW сам</b> (до этого UFW был в состоянии <code>inactive</code>). При <code>--uninstall</code> UFW отключается <b>только</b> при наличии маркера. Если до установки нашего скрипта UFW уже был активен (например, для защиты SSH или web-сервисов), <code>--uninstall</code> удалит наши правила (VPN-порт, <code>awg0 routing</code>), но оставит UFW активным. Это защита от destructive uninstall на чужой инфраструктуре. Если тебе нужно принудительно отключить UFW — <code>ufw disable</code> вручную.
+</details>
+
+<details>
+  <summary><strong>В: <code>regen</code> говорит «отсутствуют обязательные AWG-параметры» — что делать?</strong></summary>
+  <b>О:</b> С v5.8.0 <code>load_awg_params</code> читает AWG-параметры напрямую из live <code>/etc/amnezia/amneziawg/awg0.conf</code>, а не из закешированного <code>awgsetup_cfg.init</code>. Если ты правил <code>awg0.conf</code> руками и удалил/повредил одно из обязательных полей (Jc, Jmin, Jmax, S1-S4, H1-H4), <code>regen</code> упадёт с этой ошибкой <b>вместо</b> того чтобы молча использовать устаревшие значения из init-файла. Это защита от split-brain между сервером и клиентами. Что делать: (1) проверь <code>grep -E "^(Jc|Jmin|Jmax|S[1-4]|H[1-4]) = " /etc/amnezia/amneziawg/awg0.conf</code> — все 11 полей должны быть; (2) если поле удалено, восстанови его из <code>/root/awg/awgsetup_cfg.init</code> или из <code>awg0.conf.bak-*</code> бэкапа; (3) перезапусти сервис и повтори <code>regen</code>.
 </details>
 
 <details>
@@ -722,11 +746,11 @@ sudo bash /root/awg/manage_amneziawg.sh add guest --expires=7d
 <a id="mtu-mobile-adv"></a>
 ## 📱 MTU и мобильные клиенты
 
-Начиная с v5.7.12, `MTU = 1280` устанавливается автоматически в серверном и клиентских конфигах.
+Начиная с v5.7.4, `MTU = 1280` устанавливается автоматически в серверном и клиентских конфигах.
 
 **Зачем:** Сотовые сети (4G/LTE) часто имеют эффективный MTU ниже стандартных 1420 — пакеты фрагментируются или отбрасываются. iOS строго обрабатывает Path MTU Discovery и может не установить соединение. 1280 — минимальный MTU для IPv6 (RFC 8200), проходит через любую сеть. На скорость влияет незначительно.
 
-**Для установок до v5.7.12:**
+**Для установок до v5.7.4:**
 
 Добавьте `MTU = 1280` в секцию `[Interface]` серверного и клиентских конфигов вручную. Перезапустите сервис:
 

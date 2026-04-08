@@ -62,10 +62,10 @@
 
 ### Тесты
 
-- **74 bats-теста** (+28 от 5.7.12 baseline):
+- **80 bats-тестов** (+34 от baseline 5.7.12 / 46 тестов):
   - `test_h_ranges.bats` — 9 проверок генерации H1-H4
   - `test_load_awg_params.bats` — 14 проверок парсера awg0.conf, priority над init-файлом, split-brain prevention, atomic export, bootstrap path
-  - `test_validate_endpoint.bats` — 8 проверок validate_endpoint (valid FQDN/IPv4/IPv6, reject newline/CR/quotes/space/backslash/empty)
+  - `test_validate_endpoint.bats` — 14 проверок validate_endpoint (valid FQDN/IPv4/IPv6, reject newline/CR/quotes/space/backslash/empty)
 - Все 46 существующих тестов (apply_config, IP allocation, parse_duration, peer management, safe_load_config, validate) продолжают PASS без регрессий.
 
 ### Документация
