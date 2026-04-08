@@ -14,6 +14,32 @@
 
 ---
 
+## [5.8.1] — 2026-04-09
+
+Точечный hotfix v5.8.0 по мотивам [Discussion #40](https://github.com/bivlked/amneziawg-installer/discussions/40) от @z036: рандомизированные H1-H4 из v5.8.0 попадали в диапазон [2^31, 2^32-1], который клиент `amneziawg-windows-client` подчёркивает как невалидный и не даёт сохранять правки конфига. Сервер (amneziawg-go) полный `uint32` принимает, проблема только в UI-валидаторе клиента.
+
+### Исправлено
+
+- **H1-H4 Windows client compatibility ([Discussion #40](https://github.com/bivlked/amneziawg-installer/discussions/40)):** `generate_awg_h_ranges` теперь ограничивает верхний bound значений на `2^31-1 = 2147483647` вместо полного `uint32`. Это совместимо с `isValidHField()` в [amnezia-vpn/amneziawg-windows-client#85](https://github.com/amnezia-vpn/amneziawg-windows-client/issues/85) (upstream баг, открыт с февраля 2026, не исправлен). Реализация: bit-маска `0x7FFFFFFF` на выходе `od -N32 -tu4 /dev/urandom` плюс `rand_range 0 2147483647` в fallback-пути. Смещения нет — каждый младший бит остаётся независимым. Обфускация не слабеет: 4 непересекающиеся пары в `[0, 2^31)` с минимальной шириной 1000 каждая дают астрономическое количество возможных комбинаций, ТСПУ по дефолтам не зафингерпринтит. Спасибо @z036 за точный скриншот с подсвеченными полями.
+
+### Совместимость
+
+- **Существующие установки v5.8.0 продолжают работать на сервере.** `amneziawg-go` принимает полный `uint32`, handshake с клиентами не ломается. Единственное неудобство — редактор конфигов в `amneziawg-windows-client` подчёркивает H2-H4 красным, если они случайно попали в верхнюю половину диапазона (~99.6% новых v5.8.0 установок). Кросс-платформенный `amnezia-client` (Qt, Android/iOS/Desktop) этого ограничения не имеет.
+- **Апгрейд с v5.8.0 рекомендуется** если используешь `amneziawg-windows-client`: `sudo bash /root/awg/install_amneziawg.sh --uninstall --yes`, потом установка v5.8.1 заново. Новые H1-H4 будут в безопасной половине диапазона.
+- **Алгоритм и формат конфига не изменились**, только пространство генерации. Никаких breaking changes для сервера или существующих клиентских `.conf`.
+
+### Тесты
+
+- `tests/test_h_ranges.bats` обновлён: верхняя граница проверки изменена с `2^32-1` на `2^31-1` + добавлен регрессионный тест на 20 запусков × 8 значений (160 samples) которые все должны быть ≤ 2147483647. Всего **81 bats-тест** (+1 от 5.8.0).
+
+### Документация
+
+- **ADVANCED.md/en FAQ**: добавлен entry про upstream баг `amneziawg-windows-client` с объяснением root cause, ссылками на upstream issue #85 и Discussion #40, тремя вариантами workaround для пользователей v5.8.0.
+
+> 📣 **Основной relnotes пакет для ветки 5.8.x** — в [v5.8.0 release notes](https://github.com/bivlked/amneziawg-installer/releases/tag/v5.8.0). Там весь контекст Discussion #38 (ТСПУ fingerprint) и история нескольких раундов аудита кода. v5.8.1 — hotfix поверх 5.8.0, рекомендуется всем пользователям Windows-клиента.
+
+---
+
 ## [5.8.0] — 2026-04-07
 
 Крупное обновление безопасности и надёжности после нескольких последовательных аудитов кода. Причина minor bump вместо patch — накопился значительный объём breaking-semantics изменений в обработке конфигов, parameter source of truth, и обработке ошибок.
@@ -449,7 +475,8 @@
 - Диагностический отчет (`--diagnostic`).
 - Полная деинсталляция (`--uninstall`).
 
-[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.0...HEAD
+[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.1...HEAD
+[5.8.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.0...v5.8.1
 [5.8.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.12...v5.8.0
 [5.7.12]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.11...v5.7.12
 [5.7.11]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.10...v5.7.11

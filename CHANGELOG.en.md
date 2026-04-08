@@ -14,6 +14,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.8.1] — 2026-04-09
+
+Targeted hotfix on top of v5.8.0 following [Discussion #40](https://github.com/bivlked/amneziawg-installer/discussions/40) from @z036: the randomized H1-H4 values from v5.8.0 could fall into the `[2^31, 2^32-1]` range, which the `amneziawg-windows-client` config editor underlines as invalid and refuses to save. The server (amneziawg-go) accepts the full `uint32`; the issue is purely in the client-side UI validator.
+
+### Fixed
+
+- **H1-H4 Windows client compatibility ([Discussion #40](https://github.com/bivlked/amneziawg-installer/discussions/40)):** `generate_awg_h_ranges` now caps the upper bound at `2^31-1 = 2147483647` instead of the full `uint32`. This matches `isValidHField()` in [amnezia-vpn/amneziawg-windows-client#85](https://github.com/amnezia-vpn/amneziawg-windows-client/issues/85) (upstream bug, open since February 2026, not yet fixed). Implementation: a `0x7FFFFFFF` bit mask is applied to the `od -N32 -tu4 /dev/urandom` output, and the fallback path now uses `rand_range 0 2147483647`. No bias is introduced — each lower bit stays independent. Obfuscation strength is not weakened: four non-overlapping pairs in `[0, 2^31)` with a minimum width of 1000 each still give an astronomically large key space, DPI cannot fingerprint by default values. Thanks @z036 for the precise screenshot with the underlined fields.
+
+### Compatibility
+
+- **Existing v5.8.0 installs continue to work on the server side.** `amneziawg-go` accepts the full `uint32`, handshake with clients is not affected. The only inconvenience is that `amneziawg-windows-client`'s config editor underlines H2-H4 in red if they happen to land in the upper half of the range (~99.6% of fresh v5.8.0 installs). The cross-platform `amnezia-client` (Qt, Android/iOS/Desktop) does not have this limit.
+- **Upgrading from v5.8.0 is recommended** if you use `amneziawg-windows-client`: run `sudo bash /root/awg/install_amneziawg.sh --uninstall --yes`, then install v5.8.1 fresh. New H1-H4 values will land in the safe half of the range.
+- **Algorithm and config format are unchanged**, only the generation space is narrower. No breaking changes for the server or existing client `.conf` files.
+
+### Tests
+
+- `tests/test_h_ranges.bats` updated: upper-bound check changed from `2^32-1` to `2^31-1`, plus a new regression test running the generator 20 times × 8 values (160 samples) and asserting every value is ≤ 2147483647. Total: **81 bats tests** (+1 from 5.8.0).
+
+### Documentation
+
+- **ADVANCED.md/en FAQ**: added an entry about the upstream `amneziawg-windows-client` bug with a root-cause explanation, links to upstream issue #85 and Discussion #40, and three workaround options for v5.8.0 users.
+
+> 📣 **The main release notes bundle for the 5.8.x branch** lives in [v5.8.0 release notes](https://github.com/bivlked/amneziawg-installer/releases/tag/v5.8.0). That is where the full Discussion #38 (Russian DPI fingerprinting) context and the multi-round code-audit story lives. v5.8.1 is a hotfix on top of 5.8.0, recommended for everyone using the Windows client.
+
+---
+
 ## [5.8.0] — 2026-04-07
 
 Major security and reliability update after several consecutive code audits. The reason for a minor bump instead of a patch release is the significant volume of breaking-semantics changes in config handling, parameter source of truth, and error propagation.
@@ -449,7 +475,8 @@ Major security and reliability update after several consecutive code audits. The
 - Diagnostic report (`--diagnostic`).
 - Full uninstall (`--uninstall`).
 
-[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.0...HEAD
+[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.1...HEAD
+[5.8.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.0...v5.8.1
 [5.8.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.12...v5.8.0
 [5.7.12]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.11...v5.7.12
 [5.7.11]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.10...v5.7.11

@@ -8,14 +8,14 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 installation and configuration script for Ubuntu/Debian servers
 # Author: @bivlked
-# Version: 5.8.0
-# Date: 2026-04-07
+# Version: 5.8.1
+# Date: 2026-04-08
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Safe mode and Constants ---
 set -o pipefail
-SCRIPT_VERSION="5.8.0"
+SCRIPT_VERSION="5.8.1"
 
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
@@ -497,12 +497,21 @@ rand_range() {
     echo $(( (random_val % range) + min ))
 }
 
-# Generate 4 non-overlapping uint32 ranges for AWG H1-H4.
-# Algorithm: 8 random uint32 → sort → 4 (low, high) pairs.
+# Generate 4 non-overlapping ranges for AWG H1-H4.
+# Algorithm: 8 random values → sort → 4 (low, high) pairs.
 # Sorting guarantees low ≤ high and non-overlap between pairs.
 # Minimum width per range = 1000 (for proper obfuscation).
 # Prints 4 "low-high" lines to stdout. Returns 1 on failure.
 # Mitigates Russian DPI fingerprinting of static H values (#38).
+#
+# Range: [0, 2^31-1] = [0, 2147483647]. The AmneziaWG spec allows the
+# full uint32 (0-4294967295), but the standalone Windows client
+# `amneziawg-windows-client` has a UI validator capped at 2^31-1 in
+# `ui/syntax/highlighter.go:isValidHField()` (upstream bug
+# amnezia-vpn/amneziawg-windows-client#85, not yet fixed). Values above
+# 2^31-1 work on the server, but the client's config editor underlines
+# them as invalid and blocks saving. For compatibility we generate in
+# the safe half of the range (#40).
 #
 # Optimization: a single `od -N32 -tu4` call reads 32 bytes = 8 uint32
 # values in one operation, instead of 8 separate subprocess calls via
@@ -516,7 +525,10 @@ generate_awg_h_ranges() {
             local count=0
             while IFS= read -r _v; do
                 [[ "$_v" =~ ^[0-9]+$ ]] || continue
-                arr+=("$_v"); count=$((count + 1))
+                # Mask 0x7FFFFFFF: clears the top bit, value in [0, 2^31-1]
+                # with no bias (each lower bit stays independent).
+                arr+=("$(( _v & 2147483647 ))")
+                count=$((count + 1))
                 (( count == 8 )) && break
             done <<< "$raw"
         fi
@@ -524,7 +536,7 @@ generate_awg_h_ranges() {
             arr=()
             local _i
             for _i in 1 2 3 4 5 6 7 8; do
-                arr+=("$(rand_range 0 4294967295)")
+                arr+=("$(rand_range 0 2147483647)")
             done
         fi
         local sorted
