@@ -8,14 +8,14 @@ fi
 # ==============================================================================
 # AmneziaWG 2.0 installation and configuration script for Ubuntu/Debian servers
 # Author: @bivlked
-# Version: 5.8.1
-# Date: 2026-04-08
+# Version: 5.8.2
+# Date: 2026-04-10
 # Repository: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Safe mode and Constants ---
 set -o pipefail
-SCRIPT_VERSION="5.8.1"
+SCRIPT_VERSION="5.8.2"
 
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
@@ -570,7 +570,12 @@ generate_cps_i1() {
 generate_awg_params() {
     log "Generating AWG 2.0 parameters..."
 
-    AWG_Jc=$(rand_range 4 8)
+    # Jc lowered from 4-8 to 3-6: mobile networks (LTE/5G) do not tolerate
+    # large amounts of junk packets well due to smaller MTU, higher packet loss,
+    # and proximity DPI. Discussion #38 (elvaleto): Jc=3 worked immediately on
+    # mobile, while 4-8 required multiple connection attempts. 3-6 balances
+    # obfuscation with mobile network compatibility.
+    AWG_Jc=$(rand_range 3 6)
     AWG_Jmin=$(rand_range 40 89)
     AWG_Jmax=$(( AWG_Jmin + $(rand_range 100 500) ))
     AWG_S1=$(rand_range 15 150)
@@ -811,8 +816,14 @@ else
 fi)
 
 # --- TCP/IP Hardening ---
-net.ipv4.conf.all.rp_filter = 1
-net.ipv4.conf.default.rp_filter = 1
+# rp_filter = 2 (loose mode): validates source IP against ANY route in the
+# table, not against the reverse path through the same interface. Strict mode
+# (=1) breaks routing on cloud hosters (Hetzner and similar) where the gateway
+# is in a different subnet than the VPS IP — reply packets fail the strict
+# reverse path check. Loose mode is safe: spoofed source IPs are still dropped
+# if no route exists for them at all. Discussion #41 (z036).
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
 net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 net.ipv4.tcp_syncookies = 1
@@ -850,6 +861,14 @@ net.netfilter.nf_conntrack_max = 65536
 # --- Security ---
 vm.swappiness = 10
 kernel.sysrq = 0
+
+# Suppress kernel warning/notice messages in the hoster VNC console.
+# Without this, fail2ban UFW blocks spam the VNC window with "[UFW BLOCK]"
+# lines and make the console unusable.
+# Format: console_loglevel default_msg_loglevel min_console_loglevel default_console_loglevel
+# Value 3 = KERN_ERR — only errors and above reach the console.
+# Discussion #41 (z036).
+kernel.printk = 3 4 1 3
 EOF
 
     log "Applying sysctl..."
@@ -1158,6 +1177,15 @@ step_uninstall() {
             port_to_del=${port_to_del:-39743}
             # Removing our rules is ALWAYS performed (idempotent)
             ufw delete allow "${port_to_del}/udp" 2>/dev/null
+            # To delete a route rule we need an exact match with how it was created:
+            # "ufw route allow in on awg0 out on <nic>". Without "out on", UFW will
+            # not find the rule and it stays in ufw status. Discussion #41.
+            local _nic
+            _nic=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
+            if [[ -n "$_nic" ]]; then
+                ufw route delete allow in on awg0 out on "$_nic" 2>/dev/null
+            fi
+            # Fallback: try deleting without out on (for compatibility with older rules)
             ufw route delete allow in on awg0 2>/dev/null
 
             # ufw disable runs ONLY if UFW was enabled by our installer.

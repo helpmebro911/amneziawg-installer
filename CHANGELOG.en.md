@@ -14,6 +14,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.8.2] — 2026-04-10
+
+### Fixed
+
+- **Hoster VNC console breaks, network drops on Hetzner (Discussion #41):** `rp_filter` lowered from `1` (strict) to `2` (loose). Strict mode broke routing on cloud hosters (Hetzner and similar) where the gateway is in a different subnet. Added `kernel.printk = 3 4 1 3` to suppress kernel warning messages in the VNC console. Thanks @z036.
+- **`--uninstall` now correctly removes UFW routing rules:** added `out on <nic>` to the delete command — UFW requires an exact match with the rule that was created during install.
+- **Default `Jc` lowered from 4-8 to 3-6 (Discussion #38):** mobile networks (LTE/5G) do not tolerate large amounts of junk packets well. @elvaleto confirmed that `Jc=3` works reliably on Tattelecom (Letai).
+
+### Documentation
+
+- **ADVANCED.md/en FAQ:** added 2 new entries — Jc/I1 recommendation for mobile networks and workaround for the VNC/Hetzner rp_filter issue. Parameter table updated: `Jc` range `4-8 → 3-6`.
+
+---
+
 ## [5.8.1] — 2026-04-09
 
 Targeted hotfix on top of v5.8.0 following [Discussion #40](https://github.com/bivlked/amneziawg-installer/discussions/40) from @z036: the randomized H1-H4 values from v5.8.0 could fall into the `[2^31, 2^32-1]` range, which the `amneziawg-windows-client` config editor underlines as invalid and refuses to save. The server (amneziawg-go) accepts the full `uint32`; the issue is purely in the client-side UI validator.
@@ -475,7 +489,8 @@ Major security and reliability update after several consecutive code audits. The
 - Diagnostic report (`--diagnostic`).
 - Full uninstall (`--uninstall`).
 
-[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.1...HEAD
+[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.2...HEAD
+[5.8.2]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.1...v5.8.2
 [5.8.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.0...v5.8.1
 [5.8.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.12...v5.8.0
 [5.7.12]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.11...v5.7.12

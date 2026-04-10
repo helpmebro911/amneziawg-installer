@@ -79,7 +79,7 @@
 
 | Параметр | Описание | Диапазон | Пример |
 |----------|----------|----------|--------|
-| `Jc` | Количество junk-пакетов | 4-8 | `6` |
+| `Jc` | Количество junk-пакетов | 3-6 | `5` |
 | `Jmin` | Мин. размер junk (байт) | 40-89 | `55` |
 | `Jmax` | Макс. размер junk (байт) | Jmin+100..Jmin+500 | `380` |
 | `S1` | Padding init-сообщения (байт) | 15-150 | `72` |
@@ -444,7 +444,7 @@ graph TD
 Инсталлятор скачивает `awg_common.sh` и `manage_amneziawg.sh` с URL, привязанных к конкретному тегу версии:
 
 ```
-https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/awg_common.sh
+https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/awg_common.sh
 ```
 
 Это обеспечивает **supply chain pinning** — гарантию, что скачиваемые скрипты соответствуют версии инсталлятора, даже если `main` уже обновлён.
@@ -464,12 +464,12 @@ AWG_BRANCH=my-feature-branch sudo bash ./install_amneziawg.sh
 
 ```bash
 # Русская версия:
-wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/manage_amneziawg.sh
-wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/awg_common.sh
+wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/manage_amneziawg.sh
+wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/awg_common.sh
 
 # Английская версия:
-wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/manage_amneziawg_en.sh
-wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/awg_common_en.sh
+wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/manage_amneziawg_en.sh
+wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/awg_common_en.sh
 
 # Установить права
 chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
@@ -552,6 +552,31 @@ chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
 <details>
   <summary><strong>В: Не подключается смартфон через мобильную сеть / не работает на iPhone</strong></summary>
   <b>О:</b> Добавьте <code>MTU = 1280</code> в секцию <code>[Interface]</code> серверного и клиентского конфигов. Сотовые сети имеют MTU ниже стандартных 1420, а iOS строго обрабатывает PMTU. Подробнее — в разделе <a href="#mtu-mobile-adv">MTU и мобильные клиенты</a>.
+</details>
+
+<details>
+  <summary><strong>В: Подключается через мобильную сеть только с третьего раза / нестабильно</strong></summary>
+  <b>О:</b> Если после установки VPN работает на домашнем/проводном интернете но нестабилен на мобильном — попробуйте снизить количество junk-пакетов и размер CPS. Discussion #38 (@elvaleto): на Таттелеком (Летай) c Jc=4-8 подключалось раза с третьего, а после снижения <code>Jc = 3</code> и <code>I1 = &lt;r 64&gt;</code> заработало сразу. Мобильные сети имеют меньший MTU, больше packet loss и DPI ближе к абоненту — лишние junk-пакеты создают дополнительную нагрузку на handshake.
+  <br><br>
+  Что делать:
+  <ol>
+    <li>Откройте <code>/etc/amnezia/amneziawg/awg0.conf</code> и замените <code>Jc</code> на <code>3</code>, а <code>I1</code> на <code>&lt;r 64&gt;</code>.</li>
+    <li><code>sudo systemctl restart awg-quick@awg0</code></li>
+    <li><code>sudo bash /root/awg/manage_amneziawg.sh regen &lt;имя_клиента&gt;</code> для каждого клиента.</li>
+    <li>Раздайте обновлённые конфиги.</li>
+  </ol>
+  С v5.8.2 дефолтный Jc снижен с 4-8 до 3-6, что должно улучшить совместимость с мобильными из коробки. Если всё равно нестабильно — поставьте <code>Jc = 2</code> и <code>I1 = &lt;r 32&gt;</code>.
+</details>
+
+<details>
+  <summary><strong>В: Скрипт ломает VNC-консоль хостера / потеря сети на Hetzner</strong></summary>
+  <b>О:</b> До v5.8.2 скрипт устанавливал <code>net.ipv4.conf.all.rp_filter = 1</code> (strict reverse-path filtering). На Hetzner и подобных облачных хостерах, где шлюз находится в другой подсети чем IP самой VPS, strict mode ломает routing — ответные пакеты не проходят проверку обратного пути. Симптомы: VPS периодически теряет сеть (раз в сутки), а VNC-консоль забивается строками <code>[UFW BLOCK]</code> от Fail2Ban и становится непригодной для работы. Discussion #41 (@z036). С v5.8.2 <code>rp_filter</code> установлен в <code>2</code> (loose mode), который проверяет source IP по любому маршруту в таблице (не только обратному через тот же интерфейс), и добавлен <code>kernel.printk = 3 4 1 3</code> для подавления не-критических kernel messages на VNC-консоли. Если у тебя установка до v5.8.2 — исправь вручную:
+  <ol>
+    <li>Открой <code>/etc/sysctl.d/99-amneziawg-security.conf</code></li>
+    <li>Замени <code>rp_filter = 1</code> на <code>rp_filter = 2</code> (обе строки: <code>conf.all</code> и <code>conf.default</code>)</li>
+    <li>Добавь строку <code>kernel.printk = 3 4 1 3</code></li>
+    <li><code>sudo sysctl -p /etc/sysctl.d/99-amneziawg-security.conf</code></li>
+  </ol>
 </details>
 
 <details>

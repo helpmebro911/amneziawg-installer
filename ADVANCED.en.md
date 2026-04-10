@@ -79,7 +79,7 @@ All parameters are generated automatically during installation and saved to `/ro
 
 | Parameter | Description | Range | Example |
 |-----------|-------------|-------|---------|
-| `Jc` | Number of junk packets | 4-8 | `6` |
+| `Jc` | Number of junk packets | 3-6 | `5` |
 | `Jmin` | Min junk size (bytes) | 40-89 | `55` |
 | `Jmax` | Max junk size (bytes) | Jmin+100..Jmin+500 | `380` |
 | `S1` | Init message padding (bytes) | 15-150 | `72` |
@@ -444,7 +444,7 @@ Client keys are stored in `/root/awg/keys/` (permissions 600). Server keys are i
 The installer downloads `awg_common.sh` and `manage_amneziawg.sh` from URLs pinned to the specific version tag:
 
 ```
-https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/awg_common.sh
+https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/awg_common.sh
 ```
 
 This provides **supply chain pinning** — ensuring downloaded scripts match the installer version, even if `main` has already been updated.
@@ -464,12 +464,12 @@ To update the management and shared library scripts **without reinstalling the s
 
 ```bash
 # Russian version:
-wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/manage_amneziawg.sh
-wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/awg_common.sh
+wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/manage_amneziawg.sh
+wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/awg_common.sh
 
 # English version:
-wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/manage_amneziawg_en.sh
-wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.1/awg_common_en.sh
+wget -O /root/awg/manage_amneziawg.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/manage_amneziawg_en.sh
+wget -O /root/awg/awg_common.sh https://raw.githubusercontent.com/bivlked/amneziawg-installer/v5.8.2/awg_common_en.sh
 
 # Set permissions
 chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
@@ -552,6 +552,31 @@ chmod 700 /root/awg/manage_amneziawg.sh /root/awg/awg_common.sh
 <details>
   <summary><strong>Q: Smartphone doesn't connect over cellular / doesn't work on iPhone</strong></summary>
   <b>A:</b> Add <code>MTU = 1280</code> to the <code>[Interface]</code> section of both server and client configs. Cellular networks have lower MTU than the default 1420, and iOS is strict about PMTU. See <a href="#mtu-mobile-adv">MTU and Mobile Clients</a> for details.
+</details>
+
+<details>
+  <summary><strong>Q: VPN connects over cellular only on the third attempt / unstable</strong></summary>
+  <b>A:</b> If the VPN works fine on home/wired internet but is unstable on cellular — try reducing junk packet count and CPS size. Discussion #38 (@elvaleto): on Tattelecom (Letai) with Jc=4-8 it took multiple attempts to connect, but after setting <code>Jc = 3</code> and <code>I1 = &lt;r 64&gt;</code> it worked immediately. Cellular networks have smaller MTU, higher packet loss, and DPI closer to the subscriber — extra junk packets add overhead to the handshake.
+  <br><br>
+  What to do:
+  <ol>
+    <li>Open <code>/etc/amnezia/amneziawg/awg0.conf</code> and change <code>Jc</code> to <code>3</code> and <code>I1</code> to <code>&lt;r 64&gt;</code>.</li>
+    <li><code>sudo systemctl restart awg-quick@awg0</code></li>
+    <li><code>sudo bash /root/awg/manage_amneziawg.sh regen &lt;client_name&gt;</code> for each client.</li>
+    <li>Redistribute updated configs.</li>
+  </ol>
+  As of v5.8.2 the default Jc has been lowered from 4-8 to 3-6, which should improve cellular compatibility out of the box. If it is still unstable — try <code>Jc = 2</code> and <code>I1 = &lt;r 32&gt;</code>.
+</details>
+
+<details>
+  <summary><strong>Q: Script breaks the hoster VNC console / network drops on Hetzner</strong></summary>
+  <b>A:</b> Before v5.8.2 the script set <code>net.ipv4.conf.all.rp_filter = 1</code> (strict reverse-path filtering). On Hetzner and similar cloud hosters where the gateway is in a different subnet than the VPS IP, strict mode breaks routing — reply packets fail the reverse-path check. Symptoms: VPS periodically loses network (once a day), and the VNC console fills with <code>[UFW BLOCK]</code> lines from Fail2Ban, making it unusable. Discussion #41 (@z036). As of v5.8.2 <code>rp_filter</code> is set to <code>2</code> (loose mode), which validates source IP against any route in the table (not just the same interface), and <code>kernel.printk = 3 4 1 3</code> is added to suppress non-critical kernel messages on the VNC console. If you are on a pre-v5.8.2 install — fix manually:
+  <ol>
+    <li>Open <code>/etc/sysctl.d/99-amneziawg-security.conf</code></li>
+    <li>Change <code>rp_filter = 1</code> to <code>rp_filter = 2</code> (both lines: <code>conf.all</code> and <code>conf.default</code>)</li>
+    <li>Add a line <code>kernel.printk = 3 4 1 3</code></li>
+    <li><code>sudo sysctl -p /etc/sysctl.d/99-amneziawg-security.conf</code></li>
+  </ol>
 </details>
 
 <details>

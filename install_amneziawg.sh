@@ -8,15 +8,15 @@ fi
 # ==============================================================================
 # Скрипт для установки и настройки AmneziaWG 2.0 на Ubuntu/Debian серверах
 # Автор: @bivlked
-# Версия: 5.8.1
-# Дата: 2026-04-08
+# Версия: 5.8.2
+# Дата: 2026-04-10
 # Репозиторий: https://github.com/bivlked/amneziawg-installer
 # ==============================================================================
 
 # --- Безопасный режим и Константы ---
 set -o pipefail
 
-SCRIPT_VERSION="5.8.1"
+SCRIPT_VERSION="5.8.2"
 AWG_DIR="/root/awg"
 CONFIG_FILE="$AWG_DIR/awgsetup_cfg.init"
 STATE_FILE="$AWG_DIR/setup_state"
@@ -570,7 +570,12 @@ generate_cps_i1() {
 generate_awg_params() {
     log "Генерация параметров AWG 2.0..."
 
-    AWG_Jc=$(rand_range 4 8)
+    # Jc снижен с 4-8 до 3-6: мобильные сети (LTE/5G) плохо переносят
+    # большое количество junk-пакетов из-за меньшего MTU, большего packet loss
+    # и proximity DPI. Discussion #38 (elvaleto): с Jc=3 мобильный сразу работает,
+    # при 4-8 подключался раза с третьего. 3-6 — компромисс между обфускацией
+    # и совместимостью с мобильными сетями.
+    AWG_Jc=$(rand_range 3 6)
     AWG_Jmin=$(rand_range 40 89)
     AWG_Jmax=$(( AWG_Jmin + $(rand_range 100 500) ))
     AWG_S1=$(rand_range 15 150)
@@ -811,8 +816,14 @@ else
 fi)
 
 # --- TCP/IP Hardening ---
-net.ipv4.conf.all.rp_filter = 1
-net.ipv4.conf.default.rp_filter = 1
+# rp_filter = 2 (loose mode): проверяет source IP по ANY маршруту в таблице,
+# а не по обратному маршруту через тот же интерфейс. Strict mode (=1) ломает
+# routing на облачных хостерах (Hetzner и подобных) где шлюз в другой подсети,
+# чем IP самой VPS — ответные пакеты не проходят strict reverse path check.
+# Loose mode безопасен: подделанные source IP всё равно отсеиваются если для
+# них нет маршрута вообще. Discussion #41 (z036).
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
 net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 net.ipv4.tcp_syncookies = 1
@@ -850,6 +861,14 @@ net.netfilter.nf_conntrack_max = 65536
 # --- Security ---
 vm.swappiness = 10
 kernel.sysrq = 0
+
+# Подавление kernel warning/notice messages в VNC-консоли хостера.
+# Без этого fail2ban UFW-блокировки спамят VNC окно строками типа
+# "[UFW BLOCK]" и делают консоль непригодной для работы.
+# Format: console_loglevel default_msg_loglevel min_console_loglevel default_console_loglevel
+# Значение 3 = KERN_ERR — на консоль идут только ошибки и критические.
+# Discussion #41 (z036).
+kernel.printk = 3 4 1 3
 EOF
 
     log "Применение sysctl..."
@@ -1158,6 +1177,15 @@ step_uninstall() {
             port_to_del=${port_to_del:-39743}
             # Удаление наших правил выполняется ВСЕГДА (idempotent)
             ufw delete allow "${port_to_del}/udp" 2>/dev/null
+            # Для удаления route-правила нужно точное совпадение с тем как оно
+            # было создано: "ufw route allow in on awg0 out on <nic>". Без "out on"
+            # UFW не найдёт правило и оно останется в ufw status. Discussion #41.
+            local _nic
+            _nic=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
+            if [[ -n "$_nic" ]]; then
+                ufw route delete allow in on awg0 out on "$_nic" 2>/dev/null
+            fi
+            # Fallback: попытка удалить без out on (для совместимости со старыми правилами)
             ufw route delete allow in on awg0 2>/dev/null
 
             # ufw disable выполняется ТОЛЬКО если UFW был включён нашим установщиком.

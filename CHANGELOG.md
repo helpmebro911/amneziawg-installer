@@ -14,6 +14,20 @@
 
 ---
 
+## [5.8.2] — 2026-04-10
+
+### Исправлено
+
+- **VNC-консоль хостера ломалась, потеря сети на Hetzner (Discussion #41):** `rp_filter` снижен с `1` (strict) до `2` (loose). Strict mode ломал routing на облачных хостерах (Hetzner и подобных) где шлюз в другой подсети. Добавлен `kernel.printk = 3 4 1 3` для подавления kernel warning messages в VNC-консоли. Спасибо @z036.
+- **`--uninstall` теперь корректно удаляет UFW routing rules:** добавлено `out on <nic>` при удалении — UFW требует полное совпадение с правилом которое было создано при установке.
+- **Дефолтный `Jc` снижен с 4-8 до 3-6 (Discussion #38):** мобильные сети (LTE/5G) плохо переносят большое количество junk-пакетов. @elvaleto подтвердил что `Jc=3` стабильно работает на Таттелеком (Летай).
+
+### Документация
+
+- **ADVANCED.md/en FAQ:** добавлены 2 новых entry — рекомендация Jc/I1 для мобильных сетей и workaround для VNC/Hetzner rp_filter проблемы. Таблица параметров обновлена: `Jc` диапазон `4-8 → 3-6`.
+
+---
+
 ## [5.8.1] — 2026-04-09
 
 Точечный hotfix v5.8.0 по мотивам [Discussion #40](https://github.com/bivlked/amneziawg-installer/discussions/40) от @z036: рандомизированные H1-H4 из v5.8.0 попадали в диапазон [2^31, 2^32-1], который клиент `amneziawg-windows-client` подчёркивает как невалидный и не даёт сохранять правки конфига. Сервер (amneziawg-go) полный `uint32` принимает, проблема только в UI-валидаторе клиента.
@@ -475,7 +489,8 @@
 - Диагностический отчет (`--diagnostic`).
 - Полная деинсталляция (`--uninstall`).
 
-[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.1...HEAD
+[Unreleased]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.2...HEAD
+[5.8.2]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.1...v5.8.2
 [5.8.1]: https://github.com/bivlked/amneziawg-installer/compare/v5.8.0...v5.8.1
 [5.8.0]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.12...v5.8.0
 [5.7.12]: https://github.com/bivlked/amneziawg-installer/compare/v5.7.11...v5.7.12
