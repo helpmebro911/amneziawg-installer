@@ -584,7 +584,13 @@ generate_awg_params() {
     # и совместимостью с мобильными сетями.
     AWG_Jc=$(rand_range 3 6)
     AWG_Jmin=$(rand_range 40 89)
-    AWG_Jmax=$(( AWG_Jmin + $(rand_range 100 500) ))
+    # Jmax range снижен с Jmin+100..500 до Jmin+50..250: мобильные операторы
+    # (Yota, Tele2, Таттелеком) плохо переносят junk-пакеты > 300 байт.
+    # Issue #42 (markmokrenko): с Jmax=518 Yota/Tele2 блокировали, с Jmax=70 заработало.
+    # Discussion #38 (elvaleto): аналогичная проблема на Таттелеком.
+    # Новый range: Jmax = Jmin + 50..250, т.е. ~90-339 байт — достаточно для обфускации,
+    # но не перегружает мобильный канал.
+    AWG_Jmax=$(( AWG_Jmin + $(rand_range 50 250) ))
     AWG_S1=$(rand_range 15 150)
     AWG_S2=$(rand_range 15 150)
 

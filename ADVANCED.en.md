@@ -81,7 +81,7 @@ All parameters are generated automatically during installation and saved to `/ro
 |-----------|-------------|-------|---------|
 | `Jc` | Number of junk packets | 3-6 | `5` |
 | `Jmin` | Min junk size (bytes) | 40-89 | `55` |
-| `Jmax` | Max junk size (bytes) | Jmin+100..Jmin+500 | `380` |
+| `Jmax` | Max junk size (bytes) | Jmin+50..Jmin+250 | `200` |
 | `S1` | Init message padding (bytes) | 15-150 | `72` |
 | `S2` | Response message padding (bytes) | 15-150, S1+56≠S2 | `56` |
 | `S3` | Cookie message padding (bytes) | 8-55 | `32` |

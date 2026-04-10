@@ -584,7 +584,13 @@ generate_awg_params() {
     # obfuscation with mobile network compatibility.
     AWG_Jc=$(rand_range 3 6)
     AWG_Jmin=$(rand_range 40 89)
-    AWG_Jmax=$(( AWG_Jmin + $(rand_range 100 500) ))
+    # Jmax range lowered from Jmin+100..500 to Jmin+50..250: mobile carriers
+    # (Yota, Tele2, Tattelecom) drop junk packets > 300 bytes.
+    # Issue #42 (markmokrenko): Jmax=518 blocked by Yota/Tele2, Jmax=70 worked.
+    # Discussion #38 (elvaleto): same issue on Tattelecom.
+    # New range: Jmax = Jmin + 50..250, i.e. ~90-339 bytes — enough for
+    # obfuscation without overloading the mobile channel.
+    AWG_Jmax=$(( AWG_Jmin + $(rand_range 50 250) ))
     AWG_S1=$(rand_range 15 150)
     AWG_S2=$(rand_range 15 150)
 
