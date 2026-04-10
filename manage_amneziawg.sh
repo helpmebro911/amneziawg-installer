@@ -274,8 +274,47 @@ restore_backup() {
 
     local td restore_errors=0
     td=$(manage_mktempdir) || { log_error "Ошибка создания временной директории"; return 1; }
-    if ! tar -xzf "$bf" -C "$td"; then
+
+    # Pre-extraction валидация: проверяем содержимое tar до распаковки.
+    # Defense-in-depth: наш threat model (root-only локальные бэкапы) делает
+    # эксплуатацию маловероятной, но crafted или подменённый архив мог бы
+    # использовать path traversal (../), абсолютные пути, symlinks или device
+    # файлы для перезаписи произвольных системных файлов при распаковке от root.
+    local _tar_list _bad_entry
+    _tar_list=$(tar -tzf "$bf" 2>/dev/null) || {
+        log_error "Не удалось прочитать содержимое архива $bf"
+        rm -rf "$td"
+        return 1
+    }
+    while IFS= read -r _bad_entry; do
+        [[ -z "$_bad_entry" ]] && continue
+        # Абсолютные пути
+        if [[ "$_bad_entry" == /* ]]; then
+            log_error "Архив содержит абсолютный путь: '$_bad_entry' — восстановление отменено."
+            rm -rf "$td"
+            return 1
+        fi
+        # Parent directory traversal
+        if [[ "$_bad_entry" == *..* ]]; then
+            log_error "Архив содержит path traversal (..): '$_bad_entry' — восстановление отменено."
+            rm -rf "$td"
+            return 1
+        fi
+    done <<< "$_tar_list"
+    log_debug "Pre-extraction проверка пройдена: $(echo "$_tar_list" | wc -l) файлов в архиве."
+
+    if ! tar -xzf "$bf" --no-same-owner -C "$td"; then
         log_error "Ошибка tar $bf"
+        rm -rf "$td"
+        return 1
+    fi
+
+    # Post-extraction проверка: нет symlinks в распакованном дереве
+    local _symlinks
+    _symlinks=$(find "$td" -type l 2>/dev/null)
+    if [[ -n "$_symlinks" ]]; then
+        log_error "Архив содержит symlinks (возможная symlink attack):"
+        while IFS= read -r _sl; do log_error "  $_sl → $(readlink "$_sl")"; done <<< "$_symlinks"
         rm -rf "$td"
         return 1
     fi

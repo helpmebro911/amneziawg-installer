@@ -274,8 +274,47 @@ restore_backup() {
 
     local td restore_errors=0
     td=$(manage_mktempdir) || { log_error "Failed to create temp directory"; return 1; }
-    if ! tar -xzf "$bf" -C "$td"; then
+
+    # Pre-extraction validation: inspect tar contents before unpacking.
+    # Defense-in-depth: our threat model (root-only local backups) makes
+    # exploitation unlikely, but a crafted or substituted archive could use
+    # path traversal (../), absolute paths, symlinks or device files to
+    # overwrite arbitrary system files when extracted as root.
+    local _tar_list _bad_entry
+    _tar_list=$(tar -tzf "$bf" 2>/dev/null) || {
+        log_error "Cannot read archive contents: $bf"
+        rm -rf "$td"
+        return 1
+    }
+    while IFS= read -r _bad_entry; do
+        [[ -z "$_bad_entry" ]] && continue
+        # Absolute paths
+        if [[ "$_bad_entry" == /* ]]; then
+            log_error "Archive contains absolute path: '$_bad_entry' — restore aborted."
+            rm -rf "$td"
+            return 1
+        fi
+        # Parent directory traversal
+        if [[ "$_bad_entry" == *..* ]]; then
+            log_error "Archive contains path traversal (..): '$_bad_entry' — restore aborted."
+            rm -rf "$td"
+            return 1
+        fi
+    done <<< "$_tar_list"
+    log_debug "Pre-extraction check passed: $(echo "$_tar_list" | wc -l) files in archive."
+
+    if ! tar -xzf "$bf" --no-same-owner -C "$td"; then
         log_error "tar error $bf"
+        rm -rf "$td"
+        return 1
+    fi
+
+    # Post-extraction check: no symlinks in the unpacked tree
+    local _symlinks
+    _symlinks=$(find "$td" -type l 2>/dev/null)
+    if [[ -n "$_symlinks" ]]; then
+        log_error "Archive contains symlinks (possible symlink attack):"
+        while IFS= read -r _sl; do log_error "  $_sl -> $(readlink "$_sl")"; done <<< "$_symlinks"
         rm -rf "$td"
         return 1
     fi
