@@ -30,6 +30,7 @@
 <p align="center">
   <a href="#why">Why this project</a> •
   <a href="#comparison">AWG vs WG</a> •
+  <a href="#cli-vs-panel">CLI vs panels</a> •
   <a href="#quickstart">Quick Start</a> •
   <a href="#features">Features</a> •
   <a href="#requirements">Requirements</a> •
@@ -68,6 +69,23 @@ Works on Ubuntu 24.04/25.10 and Debian 12/13. Any cheap VPS with 1 GB RAM is eno
 | **Speed overhead** | Baseline | Negligible (<2%) |
 
 > If WireGuard works for you and isn't blocked — keep using it. If it's blocked or throttled — AmneziaWG 2.0 is the drop-in replacement.
+
+---
+
+<a id="cli-vs-panel"></a>
+## ⚙️ CLI Installer vs Web Panels
+
+| | This project (CLI) | Docker-based web panels |
+|---|---|---|
+| **AWG module** | Kernel module — runs at kernel level | Userspace inside a container |
+| **Server requirements** | Any VPS with 512 MB RAM | Needs PHP/Python, database, web server, Docker |
+| **Attack surface** | SSH + UDP VPN port | + HTTP panel, database, Docker |
+| **Installation** | Single command on the server, 20 minutes | docker-compose + giving SSH access to the panel |
+| **After reboot** | Resumes installation from the same step | Depends on container and database state |
+| **Web interface** | ❌ None — SSH only | ✅ GUI, browser-based management |
+| **Multiple protocols** | AmneziaWG only | WireGuard, OpenVPN, VLESS and others |
+
+> Need a VPN without GUI on a dedicated server — this project. Need a web panel with multiple protocols — look for Docker-based solutions.
 
 ---
 
