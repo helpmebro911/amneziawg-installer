@@ -75,6 +75,8 @@ Works on Ubuntu 24.04/25.10 and Debian 12/13. Any cheap VPS with 1 GB RAM is eno
 <a id="cli-vs-panel"></a>
 ## ⚙️ CLI Installer vs Web Panels
 
+> **The goal: set up a VPN on a cheap VPS in 20 minutes.** The script doesn't pull in Docker, a web server, or a database. After installation only AWG and the firewall are running — minimal footprint, maximum resources for VPN.
+
 | | This project (CLI) | Docker-based web panels |
 |---|---|---|
 | **AWG module** | Kernel module — runs at kernel level | Userspace inside a container |
