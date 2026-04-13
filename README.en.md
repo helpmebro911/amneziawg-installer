@@ -60,7 +60,7 @@ Works on Ubuntu 24.04/25.10 and Debian 12/13. Any cheap VPS with 1 GB RAM is eno
 | | WireGuard | AmneziaWG 2.0 |
 |---|---|---|
 | **DPI detection** | Fingerprinted by fixed packet sizes and magic bytes | Undetectable — randomized headers, padding, protocol mimicry |
-| **Blocked in** | China, Russia, Iran, UAE, Turkmenistan | Not blocked anywhere (April 2026) |
+| **Blocked in** | China, Russia, Iran, UAE, Turkmenistan | No known blocks (as of April 2026) |
 | **Server setup** | Manual: keys, iptables, sysctl, systemd | One command, 20 min, fully automatic |
 | **Hardening** | DIY: UFW, Fail2Ban, sysctl | Automatic: firewall + brute-force protection + kernel tuning |
 | **Client management** | Edit configs by hand, restart | `add`/`remove`/`list`/`stats` with hot-reload |
@@ -175,7 +175,7 @@ For a stable, high-throughput VPN server, you need reliable hosting with a good 
 
 We've tested and recommend [**FreakHosting**](https://freakhosting.com/clientarea/aff.php?aff=392). Their **BUDGET VPS** lineup offers excellent value for money.
 
-Their IPs are clean residential-grade, not flagged as datacenter — ideal for services that block VPN/datacenter IP ranges.
+Their IPs are not flagged as datacenter — they are not blocked by services that restrict hosting/datacenter IP ranges (unlike Azure and some major clouds).
 
 * **Recommended plan:** **BVPS-2**
 * **Specs:** 2 vCPU, 2 GB RAM, 40 GB NVMe SSD.
