@@ -14,6 +14,32 @@
 
 ---
 
+## [5.9.0] — 2026-04-15
+
+Поддержка Raspberry Pi (arm64 и armhf) и серверов на ARM64 (AWS Graviton, Oracle Ampere, Hetzner arm64). Полная реализация от [@pyr0ball](https://github.com/pyr0ball) ([PR #43](https://github.com/bivlked/amneziawg-installer/pull/43), [Issue #37](https://github.com/bivlked/amneziawg-installer/issues/37)).
+
+### Добавлено
+
+- **Prebuilt kernel modules для ARM.** Новый GitHub Actions workflow (`.github/workflows/arm-build.yml`) собирает `amneziawg.ko` для 6 ARM-таргетов через QEMU при каждом push тега `v*`. Таргеты: `rpi-bookworm-arm64` (Raspberry Pi 3/4), `rpi5-bookworm-arm64` (Pi 5 / Cortex-A76), `rpi-bookworm-armhf` (Pi 3/4 32-bit), `ubuntu-2404-arm64`, `ubuntu-2204-arm64`, `debian-bookworm-arm64`. Готовые `.deb` + `.sha256` публикуются в отдельный release `arm-packages`. Build-скрипт — `scripts/build-arm-deb.sh`, можно запускать вручную на ARM-железе вне CI.
+- **Автоматический выбор пути установки на ARM.** На `aarch64`/`armv7l` шаг 2 сначала пробует prebuilt `.deb` из `arm-packages` (kernel vermagic должен совпадать точно), при несовпадении молча откатывается на DKMS. Curl с `--max-time 60` от зависаний, SHA256 проверяется перед `dpkg -i`. Экономит время и RAM на минимальных системах без build-tools.
+- **Корректное определение kernel headers для Raspberry Pi.** Ядра RPi Foundation (`+rpt`/`-rpi` суффикс) теперь подтягивают `linux-headers-rpi-v8` или `linux-headers-rpi-2712` вместо несуществующего `linux-headers-arm64`. `amneziawg-tools` (userspace) на ARM уже поставляется через PPA для arm64/armhf — отдельная сборка не нужна.
+- **Bats-тесты для header selection.** `tests/test_rpi_headers.bats` — 6 сценариев: `+rpt-rpi-v8` → `rpi-v8`, `+rpt-rpi-2712` → `rpi-2712`, legacy `-rpi-v8`, mainline arm64 Debian, amd64, generic Ubuntu kernel.
+
+### Тесты
+
+- **x86_64 regression** на чистом Ubuntu 24.04 LTS, kernel 6.8.0-110-generic: DKMS сборка, загрузка модуля, `awg show`, `manage add/list/backup`, uninstall — всё без изменений. ARM-путь корректно пропускается на x86_64, `_try_install_prebuilt_arm` не вызывается.
+- **ARM end-to-end** на Raspberry Pi 4 / Debian 12 / kernel `6.12.75+rpt-rpi-v8` (DKMS-путь, prebuilts ещё не опубликованы на момент PR): full install lifecycle, `awg-quick@awg0` active, vermagic совпадает.
+
+### Вне этого релиза
+
+- OpenWrt — отдельная pkg-экосистема, нужен OpenWrt SDK
+- Авто-трекинг обновлений ядра / detection сломанных пакетов
+- Armbian и прочие SBC vendor-ядра (отдельные follow-up)
+
+> 📣 **Основной relnotes пакет для ветки 5.x** — в [v5.8.0 release notes](https://github.com/bivlked/amneziawg-installer/releases/tag/v5.8.0). v5.9.0 — minor bump, добавление ARM-поддержки без breaking changes для существующих x86_64 установок.
+
+---
+
 ## [5.8.4] — 2026-04-13
 
 Hardening-фиксы надёжности и безопасности по результатам ревью установщика и скрипта управления.

@@ -14,6 +14,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [5.9.0] — 2026-04-15
+
+Raspberry Pi (arm64 and armhf) and ARM64 server support (AWS Graviton, Oracle Ampere, Hetzner arm64). Full implementation by [@pyr0ball](https://github.com/pyr0ball) ([PR #43](https://github.com/bivlked/amneziawg-installer/pull/43), [Issue #37](https://github.com/bivlked/amneziawg-installer/issues/37)).
+
+### Added
+
+- **Prebuilt kernel modules for ARM.** A new GitHub Actions workflow (`.github/workflows/arm-build.yml`) builds `amneziawg.ko` for 6 ARM targets via QEMU on every `v*` tag push. Targets: `rpi-bookworm-arm64` (Raspberry Pi 3/4), `rpi5-bookworm-arm64` (Pi 5 / Cortex-A76), `rpi-bookworm-armhf` (Pi 3/4 32-bit), `ubuntu-2404-arm64`, `ubuntu-2204-arm64`, `debian-bookworm-arm64`. Built `.deb` plus `.sha256` are published to a dedicated `arm-packages` release. Build script (`scripts/build-arm-deb.sh`) can also be run manually on ARM hardware outside CI.
+- **Automatic install path selection on ARM.** On `aarch64`/`armv7l`, step 2 first tries the prebuilt `.deb` from the `arm-packages` release (kernel vermagic must match exactly) and falls back to DKMS silently if it does not. Curl uses `--max-time 60` to avoid hangs; SHA256 is verified before `dpkg -i`. Saves time and RAM on minimal systems without build tools.
+- **Correct kernel headers detection for Raspberry Pi.** RPi Foundation kernels (`+rpt`/`-rpi` suffix) now pick `linux-headers-rpi-v8` or `linux-headers-rpi-2712` instead of the non-existent `linux-headers-arm64`. `amneziawg-tools` (userspace) on ARM is already shipped by the PPA for arm64/armhf — no separate build needed.
+- **Bats tests for header selection.** `tests/test_rpi_headers.bats` — 6 cases: `+rpt-rpi-v8` → `rpi-v8`, `+rpt-rpi-2712` → `rpi-2712`, legacy `-rpi-v8`, mainline arm64 Debian, amd64, generic Ubuntu kernel.
+
+### Tests
+
+- **x86_64 regression** on a clean Ubuntu 24.04 LTS, kernel 6.8.0-110-generic: DKMS build, module load, `awg show`, `manage add/list/backup`, uninstall — all unchanged. The ARM path is skipped correctly on x86_64, `_try_install_prebuilt_arm` is not invoked.
+- **ARM end-to-end** on a Raspberry Pi 4 / Debian 12 / kernel `6.12.75+rpt-rpi-v8` (DKMS path, prebuilts not published at PR time): full install lifecycle, `awg-quick@awg0` active, vermagic matches.
+
+### Out of scope for this release
+
+- OpenWrt — separate package ecosystem, needs the OpenWrt SDK
+- Auto-tracking kernel updates / broken-package detection
+- Armbian and other SBC vendor kernels (follow-up)
+
+> 📣 **Main release notes for the 5.x branch** — see the [v5.8.0 release notes](https://github.com/bivlked/amneziawg-installer/releases/tag/v5.8.0). v5.9.0 is a minor bump adding ARM support with no breaking changes for existing x86_64 installs.
+
+---
+
 ## [5.8.4] — 2026-04-13
 
 Reliability and security hardening following a review of the installer and management script.
