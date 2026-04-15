@@ -130,12 +130,6 @@ jobs:
             bash /workspace/scripts/build-arm-deb.sh
             CONTAINER_SCRIPT
 
-      - name: Generate SHA256 checksums
-        run: |
-          for deb in ${{ github.workspace }}/output/*.deb; do
-            sha256sum "$deb" | awk '{print $1}' > "${deb}.sha256"
-          done
-
       - name: List output
         run: ls -lh ${{ github.workspace }}/output/
 
